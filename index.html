@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cobranza Amarah · Grupo Ureca</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+:root{
+  --bg:#0f1117;--bg2:#1a1d27;--bg3:#22263a;--border:#2e3248;
+  --text:#e8eaf0;--text2:#8892a4;
+  --accent:#6c63ff;--accent2:#8b5cf6;
+  --green:#22c55e;--yellow:#f59e0b;--orange:#f97316;--red:#ef4444;
+  --radius:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px}
+
+/* ── LOGIN ── */
+.login-screen{display:none;position:fixed;inset:0;background:var(--bg);z-index:9999;align-items:center;justify-content:center;flex-direction:column;gap:0}
+.login-screen.show{display:flex}
+.login-card{background:var(--bg2);border:1px solid var(--border);border-radius:18px;padding:36px 32px;width:100%;max-width:360px;display:flex;flex-direction:column;align-items:center;gap:20px}
+.login-logo{font-size:22px;font-weight:700;text-align:center}.login-logo span{color:var(--accent)}
+.login-subtitle{font-size:12px;color:var(--text2);text-align:center;margin-top:-12px}
+
+/* User selector */
+.user-list{display:flex;flex-direction:column;gap:7px;width:100%}
+.user-btn{background:var(--bg3);border:2px solid var(--border);border-radius:10px;padding:11px 16px;color:var(--text);font-size:14px;font-family:inherit;font-weight:500;cursor:pointer;transition:all .15s;text-align:left;display:flex;align-items:center;gap:10px}
+.user-btn:hover{border-color:var(--accent);background:rgba(108,99,255,.08)}
+.user-btn.selected{border-color:var(--accent);background:rgba(108,99,255,.12);color:#fff}
+.user-btn .user-role{font-size:10px;color:var(--text2);margin-left:auto;text-transform:uppercase;letter-spacing:.4px}
+.user-btn.selected .user-role{color:var(--accent)}
+
+/* PIN display */
+.pin-section{width:100%;display:none;flex-direction:column;align-items:center;gap:14px}
+.pin-section.show{display:flex}
+.pin-display{display:flex;gap:10px;justify-content:center;margin-bottom:4px}
+.pin-dot{width:14px;height:14px;border-radius:50%;background:var(--bg3);border:2px solid var(--border);transition:all .2s}
+.pin-dot.filled{background:var(--accent);border-color:var(--accent)}
+.pin-dot.error{background:var(--red);border-color:var(--red);animation:shake .3s ease}
+
+/* Numpad */
+.numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%}
+.numpad-btn{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:16px;font-size:20px;font-weight:600;color:var(--text);cursor:pointer;transition:all .15s;font-family:inherit;text-align:center;user-select:none}
+.numpad-btn:hover{background:var(--accent);border-color:var(--accent);color:#fff;transform:scale(1.04)}
+.numpad-btn:active{transform:scale(.96)}
+.numpad-btn.del{font-size:16px;color:var(--text2)}
+.numpad-btn.del:hover{background:var(--red);border-color:var(--red);color:#fff}
+.numpad-btn.empty{background:transparent;border-color:transparent;cursor:default;pointer-events:none}
+
+.pin-back{background:none;border:none;color:var(--text2);font-size:12px;cursor:pointer;font-family:inherit;margin-top:-4px;padding:4px 0}
+.pin-back:hover{color:var(--text)}
+.pin-error{color:var(--red);font-size:12px;display:none;text-align:center}
+.pin-error.show{display:block}
+
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+
+/* ── LOADING ── */
+.loading-overlay{display:none;position:fixed;inset:0;background:rgba(15,17,23,.92);z-index:500;align-items:center;justify-content:center;flex-direction:column;gap:16px}
+.loading-overlay.show{display:flex}
+.spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+.spinner-sm{width:16px;height:16px;border-width:2px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-size:13px;color:var(--text2)}
+
+/* ── TOPBAR ── */
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 20px;height:52px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100}
+.topbar-logo{font-size:15px;font-weight:700;letter-spacing:-.5px;display:flex;align-items:center;gap:6px}
+.topbar-logo span{color:var(--accent)}
+.update-chip{display:flex;align-items:center;gap:5px;background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:3px 9px;font-size:11px;color:var(--text2)}
+.update-dot{width:6px;height:6px;border-radius:50%;background:var(--green)}
+.update-dot.stale{background:var(--yellow)}
+.topbar-sep{flex:1}
+.role-badge{padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600}
+.role-cobrador{background:rgba(108,99,255,.15);color:var(--accent)}
+.role-admin{background:rgba(239,68,68,.15);color:var(--red)}
+.user-chip{display:flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:13px;color:var(--text)}
+.topbar-btn{background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:5px 10px;color:var(--text2);font-size:12px;cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .15s;font-family:inherit}
+.topbar-btn:hover{background:var(--accent);border-color:var(--accent);color:#fff}
+.topbar-btn svg{transition:transform .3s}
+.topbar-btn.spinning svg{animation:spin .8s linear infinite}
+
+/* ── KPIs ── */
+.kpi-bar{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;padding:16px 20px 0}
+@media(max-width:1300px){.kpi-bar{grid-template-columns:repeat(4,1fr)}}
+@media(max-width:700px){.kpi-bar{grid-template-columns:repeat(2,1fr)}}
+.kpi-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;display:flex;flex-direction:column;gap:3px}
+.kpi-label{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
+.kpi-value{font-size:20px;font-weight:700;line-height:1.1}
+.kpi-sub{font-size:11px;color:var(--text2)}
+.kpi-green .kpi-value{color:var(--green)}.kpi-yellow .kpi-value{color:var(--yellow)}
+.kpi-orange .kpi-value{color:var(--orange)}.kpi-red .kpi-value{color:var(--red)}
+.kpi-accent .kpi-value{color:var(--accent)}.kpi-teal .kpi-value{color:#2dd4bf}
+
+/* ── TABS ── */
+.tabs-bar{display:flex;gap:2px;padding:14px 20px 0;border-bottom:1px solid var(--border);position:sticky;top:52px;z-index:90;background:var(--bg)}
+.tab-btn{background:none;border:none;color:var(--text2);font-size:13px;font-family:inherit;padding:7px 14px 9px;cursor:pointer;border-bottom:2px solid transparent;transition:color .15s,border-color .15s;font-weight:500;margin-bottom:-1px;white-space:nowrap}
+.tab-btn:hover{color:var(--text)}.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-content{display:none}.tab-content.active{display:block}
+
+/* ── BADGES ── */
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.3px;white-space:nowrap}
+.badge-al_corriente{background:rgba(34,197,94,.15);color:var(--green)}
+.badge-aviso{background:rgba(245,158,11,.15);color:var(--yellow)}
+.badge-critico{background:rgba(249,115,22,.15);color:var(--orange)}
+.badge-en_riesgo{background:rgba(239,68,68,.15);color:var(--red)}
+.badge-pre_rescision{background:rgba(153,27,27,.3);color:#fca5a5}
+.badge-rescision{background:rgba(30,30,30,.8);color:#9ca3af;border:1px solid #374151}
+.badge-sin_accion{background:rgba(136,146,164,.15);color:var(--text2)}
+.badge-penalidad_verificada{background:rgba(45,212,191,.15);color:#2dd4bf}
+.badge-contactado{background:rgba(108,99,255,.15);color:var(--accent)}
+.badge-carta_precancelacion{background:rgba(245,158,11,.2);color:var(--yellow)}
+.badge-plan_pagos{background:rgba(34,197,94,.15);color:var(--green)}
+.badge-aviso_final{background:rgba(249,115,22,.25);color:var(--orange)}
+.badge-regularizado{background:rgba(34,197,94,.3);color:#86efac}
+.badge-rescindido{background:rgba(30,30,30,.9);color:#6b7280;border:1px solid #374151}
+
+/* ── SCORE ── */
+.score-chip{display:inline-flex;align-items:center;justify-content:center;width:36px;height:22px;border-radius:6px;font-size:11px;font-weight:700}
+.score-low{background:rgba(34,197,94,.15);color:var(--green)}
+.score-mid{background:rgba(245,158,11,.15);color:var(--yellow)}
+.score-high{background:rgba(249,115,22,.15);color:var(--orange)}
+.score-crit{background:rgba(239,68,68,.15);color:var(--red)}
+.reinc-none{color:var(--text2);font-size:11px}
+.reinc-leve{color:var(--yellow);font-size:11px;font-weight:600}
+.reinc-moderada{color:var(--orange);font-size:11px;font-weight:600}
+.reinc-cronica{color:var(--red);font-size:11px;font-weight:700}
+.alerta-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:12px;font-size:10px;font-weight:600;background:rgba(239,68,68,.15);color:var(--red);white-space:nowrap}
+
+/* ── FILTERS ── */
+.filters-bar{display:flex;gap:8px;padding:12px 20px;flex-wrap:wrap;align-items:center}
+.search-box{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:6px 11px;color:var(--text);font-size:13px;font-family:inherit;outline:none;width:240px;transition:border-color .2s}
+.search-box:focus{border-color:var(--accent)}
+.filter-select{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:6px 9px;color:var(--text);font-size:13px;font-family:inherit;outline:none;cursor:pointer}
+.filter-select option{background:var(--bg2)}
+.filters-sep{flex:1}
+.records-count{font-size:12px;color:var(--text2)}
+
+/* ── BUTTONS ── */
+.btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:6px 13px;font-size:13px;font-family:inherit;font-weight:500;cursor:pointer;transition:background .15s;white-space:nowrap;display:inline-flex;align-items:center;gap:5px}
+.btn:hover{background:var(--accent2)}
+.btn-ghost{background:var(--bg2);border:1px solid var(--border);color:var(--text2)}
+.btn-ghost:hover{background:var(--bg3);color:var(--text)}
+.btn-green{background:rgba(34,197,94,.2);border:1px solid rgba(34,197,94,.3);color:var(--green)}
+.btn-green:hover{background:var(--green);color:#000}
+.btn-red{background:rgba(239,68,68,.2);border:1px solid rgba(239,68,68,.3);color:var(--red)}
+.btn-red:hover{background:var(--red);color:#fff}
+
+/* ── TABLE ── */
+.table-wrap{padding:0 20px 24px;overflow-x:auto;overflow-y:visible;-webkit-overflow-scrolling:touch}
+table{width:100%;min-width:1200px;border-collapse:collapse;font-size:13px}
+thead th{background:var(--bg2);color:var(--text2);font-weight:500;font-size:10px;text-transform:uppercase;letter-spacing:.5px;padding:9px 10px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;position:sticky;top:100px;z-index:10;cursor:pointer;user-select:none}
+thead th:hover{color:var(--text)}
+thead th.sort-asc::after{content:' ↑';color:var(--accent)}
+thead th.sort-desc::after{content:' ↓';color:var(--accent)}
+tbody tr{border-bottom:1px solid var(--border);transition:background .1s;cursor:pointer}
+tbody tr:hover{background:var(--bg2)}
+tbody tr.has-alert{border-left:3px solid var(--red)}
+td{padding:9px 10px;vertical-align:middle;white-space:nowrap}
+.td-folio{font-weight:600;color:var(--accent);font-size:13px}
+.td-cliente{font-weight:500;max-width:160px;overflow:hidden;text-overflow:ellipsis}
+.td-num{text-align:right;font-variant-numeric:tabular-nums}
+.td-actions{display:flex;gap:5px}
+
+/* ── ACTION BUTTONS ── */
+.action-btn{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);cursor:pointer;font-size:13px;transition:all .15s;text-decoration:none}
+.action-btn:hover{background:var(--accent);border-color:var(--accent);color:#fff}
+.action-btn.wa:hover{background:#22c55e;border-color:#22c55e}
+.action-btn.call:hover{background:#3b82f6;border-color:#3b82f6}
+.action-btn.mail:hover{background:#f59e0b;border-color:#f59e0b}
+.action-btn.carta:hover{background:#ef4444;border-color:#ef4444}
+
+/* ── BULK ── */
+.bulk-bar{display:none;align-items:center;gap:10px;padding:8px 20px;background:rgba(108,99,255,.1);border-bottom:1px solid rgba(108,99,255,.3)}
+.bulk-bar.visible{display:flex}
+.bulk-count{font-size:13px;font-weight:600;color:var(--accent)}
+
+/* ── PROGRESS ── */
+.progress-wrap{background:var(--bg3);border-radius:4px;height:5px;overflow:hidden}
+.progress-fill{height:100%;border-radius:4px;transition:width .3s}
+.pct-wrap{display:flex;align-items:center;gap:6px}
+.pct-label{font-size:11px;color:var(--text2);width:34px;text-align:right}
+
+/* ── MODAL ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1000;align-items:center;justify-content:center;padding:16px}
+.modal-overlay.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:14px;width:100%;max-width:720px;max-height:92vh;overflow-y:auto;padding:24px;position:relative}
+.modal-sm{max-width:480px}
+.modal-close{position:absolute;top:14px;right:14px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text2);font-size:14px;transition:all .15s}
+.modal-close:hover{background:var(--red);border-color:var(--red);color:#fff}
+.modal-title{font-size:17px;font-weight:700;margin-bottom:3px}
+.modal-sub{font-size:12px;color:var(--accent);margin-bottom:16px}
+.modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.modal-field label{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:2px}
+.modal-field .val{font-size:13px;font-weight:500}
+.section-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text2);margin:16px 0 10px;padding-bottom:7px;border-bottom:1px solid var(--border)}
+.form-row{display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.form-group{display:flex;flex-direction:column;gap:3px;flex:1;min-width:120px}
+.form-group label{font-size:11px;color:var(--text2)}
+.form-control{background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:6px 9px;color:var(--text);font-size:13px;font-family:inherit;outline:none;transition:border-color .2s;width:100%}
+.form-control:focus{border-color:var(--accent)}
+.form-control option{background:var(--bg2)}
+textarea.form-control{resize:vertical;min-height:54px}
+.contact-entry{background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:9px 11px;margin-bottom:6px;font-size:12px}
+.contact-header{display:flex;justify-content:space-between;color:var(--text2);margin-bottom:3px}
+.contact-tipo{font-weight:600;color:var(--accent)}
+.no-items{color:var(--text2);font-size:12px;font-style:italic;padding:6px 0}
+.compromiso-entry{background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:9px 11px;margin-bottom:6px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.compromiso-fecha{font-weight:600;font-size:12px;min-width:90px}
+.compromiso-monto{font-size:13px;font-weight:700;color:var(--green)}
+.compromiso-status{margin-left:auto;display:flex;gap:4px}
+.alerta-item{display:flex;align-items:flex-start;gap:8px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:9px 11px;margin-bottom:6px;font-size:12px}
+.alerta-icon{font-size:15px;flex-shrink:0}
+.wa-template{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:13px;line-height:1.6;color:var(--text);white-space:pre-wrap;margin-bottom:10px;font-family:inherit}
+
+/* ── DASHBOARD ── */
+.dash-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;padding:16px 20px}
+@media(max-width:1000px){.dash-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.dash-grid{grid-template-columns:1fr}}
+.dash-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:18px}
+.dash-card-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text2);margin-bottom:14px}
+.dash-card.full{grid-column:1/-1}
+.risk-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.risk-label{font-size:12px;flex:1.2}
+.risk-bar-wrap{flex:2;background:var(--bg3);border-radius:4px;height:7px;overflow:hidden}
+.risk-bar-fill{height:100%;border-radius:4px;transition:width .6s}
+.risk-stats{display:flex;gap:10px;align-items:center;width:160px;justify-content:flex-end}
+.risk-count{font-size:12px;font-weight:700;width:28px;text-align:right}
+.risk-monto{font-size:11px;color:var(--text2)}
+.prod-table{width:100%;border-collapse:collapse;font-size:12px}
+.prod-table th{text-align:left;padding:7px 10px;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--text2);border-bottom:1px solid var(--border);white-space:nowrap}
+.prod-table td{padding:8px 10px;border-bottom:1px solid rgba(46,50,72,.5);vertical-align:middle}
+.hist-table{width:100%;border-collapse:collapse;font-size:12px}
+.hist-table th{text-align:right;padding:6px 10px;font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--text2);border-bottom:1px solid var(--border)}
+.hist-table th:first-child{text-align:left}
+.hist-table td{padding:7px 10px;border-bottom:1px solid rgba(46,50,72,.4);text-align:right;font-variant-numeric:tabular-nums}
+.hist-table td:first-child{text-align:left;font-weight:500}
+.efectividad-bar{display:flex;align-items:center;gap:6px}
+.efect-fill{height:8px;border-radius:4px;background:var(--accent);transition:width .5s}
+.efect-score{font-size:12px;font-weight:700;color:var(--accent);width:28px}
+
+/* ── MISC ── */
+.today-badge{display:inline-block;padding:1px 7px;background:rgba(239,68,68,.15);color:var(--red);border-radius:12px;font-size:11px;font-weight:600;margin-left:5px}
+.hoy-empty{text-align:center;color:var(--text2);padding:50px;font-size:14px}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 16px;font-size:13px;z-index:9999;display:none;animation:slideup .2s ease}
+.toast.show{display:block}
+@keyframes slideup{from{transform:translateY(16px);opacity:0}to{transform:translateY(0);opacity:1}}
+.saving-row{display:none;align-items:center;gap:6px;font-size:12px;color:var(--text2)}
+.saving-row.show{display:flex}
+.checkbox-all,.checkbox-row{width:15px;height:15px;cursor:pointer;accent-color:var(--accent)}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.cobrador-only{}.admin-only{display:none}
+body.is-admin .cobrador-only{display:none!important}
+body.is-admin .admin-only{display:block}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-screen show" id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">🏗 Cobranza <span>Amarah</span></div>
+    <div class="login-subtitle">Grupo Ureca de México</div>
+
+    <!-- Paso 1: seleccionar usuario -->
+    <div id="stepUsuario" style="width:100%">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:10px;text-align:center">¿Quién eres?</div>
+      <div class="user-list">
+        <button class="user-btn" onclick="selectUser('Andrea Ramirez','cobrador')">👤 Andrea Ramírez <span class="user-role">Cobradora</span></button>
+        <button class="user-btn" onclick="selectUser('Liz Olvera','cobrador')">👤 Liz Olvera <span class="user-role">Cobradora</span></button>
+        <button class="user-btn" onclick="selectUser('Nana Retana','cobrador')">👤 Nana Retana <span class="user-role">Cobradora</span></button>
+        <button class="user-btn" onclick="selectUser('ER','admin')">🔑 ER <span class="user-role">Admin</span></button>
+        <button class="user-btn" onclick="selectUser('FU','admin')">🔑 FU <span class="user-role">Admin</span></button>
+        <button class="user-btn" onclick="selectUser('Enrique Gonzalez','admin')">🔑 Enrique González <span class="user-role">Admin</span></button>
+        <button class="user-btn" onclick="selectUser('Oscar Retana','admin')">🔑 Oscar Retana <span class="user-role">Admin</span></button>
+      </div>
+    </div>
+
+    <!-- Paso 2: PIN -->
+    <div class="pin-section" id="stepPin">
+      <div style="font-size:13px;color:var(--text2);text-align:center">Hola <strong id="pinNombre" style="color:var(--text)">—</strong>, ingresa tu PIN</div>
+      <div class="pin-display">
+        <div class="pin-dot" id="dot0"></div>
+        <div class="pin-dot" id="dot1"></div>
+        <div class="pin-dot" id="dot2"></div>
+        <div class="pin-dot" id="dot3"></div>
+      </div>
+      <div class="pin-error" id="pinError">PIN incorrecto, intenta de nuevo</div>
+      <div class="numpad">
+        <button class="numpad-btn" onclick="pinPress('1')">1</button>
+        <button class="numpad-btn" onclick="pinPress('2')">2</button>
+        <button class="numpad-btn" onclick="pinPress('3')">3</button>
+        <button class="numpad-btn" onclick="pinPress('4')">4</button>
+        <button class="numpad-btn" onclick="pinPress('5')">5</button>
+        <button class="numpad-btn" onclick="pinPress('6')">6</button>
+        <button class="numpad-btn" onclick="pinPress('7')">7</button>
+        <button class="numpad-btn" onclick="pinPress('8')">8</button>
+        <button class="numpad-btn" onclick="pinPress('9')">9</button>
+        <button class="numpad-btn empty"></button>
+        <button class="numpad-btn" onclick="pinPress('0')">0</button>
+        <button class="numpad-btn del" onclick="pinDel()">⌫</button>
+      </div>
+      <button class="pin-back" onclick="backToUsers()">← Cambiar usuario</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loadingText">Cargando cartera...</div>
+</div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-logo">🏗 Cobranza <span>Amarah</span></div>
+  <div class="update-chip"><div class="update-dot" id="updateDot"></div><span id="updateLabel">—</span></div>
+  <div class="topbar-sep"></div>
+  <span class="role-badge" id="roleBadge"></span>
+  <div class="user-chip">👤 <span id="userLabel">—</span></div>
+  <button class="topbar-btn" id="refreshBtn" onclick="refreshData()">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
+    Actualizar
+  </button>
+  <button class="topbar-btn" onclick="logout()">Salir</button>
+</div>
+
+<!-- KPIs -->
+<div class="kpi-bar">
+  <div class="kpi-card"><div class="kpi-label">Cartera total</div><div class="kpi-value kpi-accent" id="kpiCartera">—</div><div class="kpi-sub" id="kpiExp">— exp.</div></div>
+  <div class="kpi-card kpi-teal"><div class="kpi-label">Mensualidades esperadas</div><div class="kpi-value" id="kpiMensual">—</div><div class="kpi-sub">Este mes</div></div>
+  <div class="kpi-card kpi-red"><div class="kpi-label">Cartera vencida</div><div class="kpi-value" id="kpiVencida">—</div><div class="kpi-sub" id="kpiVencidaPct">—%</div></div>
+  <div class="kpi-card kpi-green"><div class="kpi-label">Regularizado mes</div><div class="kpi-value" id="kpiReg">—</div><div class="kpi-sub" id="kpiRegPct">—</div></div>
+  <div class="kpi-card kpi-orange"><div class="kpi-label">Rescindido mes</div><div class="kpi-value" id="kpiResc">—</div><div class="kpi-sub">Este mes</div></div>
+  <div class="kpi-card kpi-green"><div class="kpi-label">Al corriente</div><div class="kpi-value" id="kpiCorriente">—</div><div class="kpi-sub" id="kpiCorrientePct">—%</div></div>
+  <div class="kpi-card kpi-red"><div class="kpi-label">Con alertas hoy</div><div class="kpi-value" id="kpiAlertas">—</div><div class="kpi-sub">Requieren acción</div></div>
+</div>
+
+<!-- TABS -->
+<div class="tabs-bar">
+  <button class="tab-btn cobrador-only active" onclick="switchTab('vencidos',event)">🔴 Cartera vencida</button>
+  <button class="tab-btn cobrador-only" onclick="switchTab('todos',event)">📋 Todos</button>
+  <button class="tab-btn cobrador-only" onclick="switchTab('hoy',event)">📅 Acciones de hoy <span class="today-badge" id="todayCount">0</span></button>
+  <button class="tab-btn admin-only active" onclick="switchTab('dashboard',event)">📊 Dashboard</button>
+  <button class="tab-btn admin-only" onclick="switchTab('productividad',event)">👥 Equipo</button>
+  <button class="tab-btn admin-only" onclick="switchTab('todos',event)">📋 Expedientes</button>
+</div>
+
+<!-- BULK -->
+<div class="bulk-bar cobrador-only" id="bulkBar">
+  <span class="bulk-count" id="bulkCount">0 seleccionados</span>
+  <button class="btn btn-ghost" onclick="bulkAction('contactado')">✓ Contactado</button>
+  <button class="btn btn-ghost" onclick="bulkAction('carta_precancelacion')">✉ Carta pre-cancel.</button>
+  <button class="btn btn-ghost" onclick="bulkAction('rescindido')">⚠ Rescindir</button>
+  <button class="btn btn-ghost" style="color:var(--text2)" onclick="clearSelection()">✕</button>
+</div>
+
+<!-- TAB DASHBOARD -->
+<div class="tab-content" id="tab-dashboard"><div class="dash-grid" id="dashGrid"></div></div>
+
+<!-- TAB PRODUCTIVIDAD -->
+<div class="tab-content" id="tab-productividad">
+  <div style="padding:16px 20px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+      <span style="font-size:13px;color:var(--text2)">Mes:</span>
+      <select class="filter-select" id="prodMes" onchange="renderProductividad()"></select>
+      <select class="filter-select" id="prodAnio" onchange="renderProductividad()"></select>
+    </div>
+    <div id="prodContent"></div>
+  </div>
+</div>
+
+<!-- TAB VENCIDOS -->
+<div class="tab-content cobrador-only active" id="tab-vencidos">
+  <div class="filters-bar">
+    <input class="search-box" type="text" id="searchV" placeholder="🔍 Buscar folio, cliente, teléfono..." oninput="renderVencidos()">
+    <select class="filter-select" id="fRiesgo" onchange="renderVencidos()">
+      <option value="">Todos los niveles</option>
+      <option value="aviso">🟡 Aviso (1)</option>
+      <option value="critico">🟠 Crítico (2)</option>
+      <option value="en_riesgo">🔴 En riesgo (3)</option>
+      <option value="pre_rescision">🔴 Pre-rescisión (4)</option>
+      <option value="rescision">⚫ Rescisión (5+)</option>
+    </select>
+    <select class="filter-select" id="fGestion" onchange="renderVencidos()">
+      <option value="">Todos los estatus</option>
+      <option value="sin_accion">Sin acción</option>
+      <option value="penalidad_verificada">Penalidad verificada</option>
+      <option value="contactado">Contactado</option>
+      <option value="carta_precancelacion">Carta pre-cancelación</option>
+      <option value="plan_pagos">Plan de pagos</option>
+      <option value="aviso_final">Aviso final</option>
+      <option value="regularizado">Regularizado</option>
+      <option value="rescindido">Rescindido</option>
+    </select>
+    <select class="filter-select" id="fAsesorV" onchange="renderVencidos()"><option value="">Todos los asesores</option></select>
+    <select class="filter-select" id="fAlerta" onchange="renderVencidos()">
+      <option value="">Todas</option>
+      <option value="1">⚠ Solo con alertas</option>
+    </select>
+    <div class="filters-sep"></div>
+    <span class="records-count" id="countV"></span>
+    <button class="btn btn-ghost" onclick="exportCSV('vencidos')">⬇ CSV</button>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th><input type="checkbox" class="checkbox-all" id="checkAll" onchange="toggleAll(this)"></th>
+        <th onclick="sortTable('folio','v')">Folio</th>
+        <th onclick="sortTable('cliente','v')">Cliente</th>
+        <th onclick="sortTable('parc_vencidas','v')">Venc.</th>
+        <th onclick="sortTable('monto_vencido','v')">Monto vencido</th>
+        <th onclick="sortTable('mensualidad','v')">Mensualidad</th>
+        <th onclick="sortTable('nivel_riesgo','v')">Nivel</th>
+        <th onclick="sortTable('score_riesgo','v')">Score</th>
+        <th onclick="sortTable('estatus_gestion','v')">Gestión</th>
+        <th>Reincidencia</th>
+        <th>Alertas</th>
+        <th onclick="sortTable('fecha_ultimo_pago','v')">Últ. pago</th>
+        <th>% Pagado</th>
+        <th>Acciones</th>
+      </tr></thead>
+      <tbody id="tbodyV"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- TAB TODOS -->
+<div class="tab-content" id="tab-todos">
+  <div class="filters-bar">
+    <input class="search-box" type="text" id="searchT" placeholder="🔍 Buscar folio, cliente, teléfono..." oninput="renderTodos()">
+    <select class="filter-select" id="fRiesgoT" onchange="renderTodos()">
+      <option value="">Todos los niveles</option>
+      <option value="al_corriente">🟢 Al corriente</option>
+      <option value="aviso">🟡 Aviso</option>
+      <option value="critico">🟠 Crítico</option>
+      <option value="en_riesgo">🔴 En riesgo</option>
+      <option value="pre_rescision">🔴 Pre-rescisión</option>
+      <option value="rescision">⚫ Rescisión</option>
+    </select>
+    <select class="filter-select" id="fAsesorT" onchange="renderTodos()"><option value="">Todos los asesores</option></select>
+    <div class="filters-sep"></div>
+    <span class="records-count" id="countT"></span>
+    <button class="btn btn-ghost" onclick="exportCSV('todos')">⬇ CSV</button>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th onclick="sortTable('folio','t')">Folio</th>
+        <th onclick="sortTable('cliente','t')">Cliente</th>
+        <th onclick="sortTable('costo','t')">Contrato</th>
+        <th onclick="sortTable('pagado','t')">Pagado</th>
+        <th onclick="sortTable('saldo','t')">Saldo</th>
+        <th onclick="sortTable('parc_vencidas','t')">Vencidas</th>
+        <th onclick="sortTable('nivel_riesgo','t')">Nivel</th>
+        <th onclick="sortTable('score_riesgo','t')">Score</th>
+        <th onclick="sortTable('estatus_gestion','t')">Gestión</th>
+        <th onclick="sortTable('asesor','t')">Asesor</th>
+        <th>Acciones</th>
+      </tr></thead>
+      <tbody id="tbodyT"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- TAB HOY -->
+<div class="tab-content cobrador-only" id="tab-hoy">
+  <div style="padding:14px 20px"><div id="hoyContent"></div></div>
+</div>
+
+<!-- MODAL GESTIÓN -->
+<div class="modal-overlay" id="modalGestion">
+  <div class="modal">
+    <div class="modal-close" onclick="closeModal('modalGestion')">✕</div>
+    <div class="modal-title" id="mgNombre">—</div>
+    <div class="modal-sub" id="mgSub">—</div>
+    <div id="mgAlertas"></div>
+    <div class="modal-grid" id="mgInfo"></div>
+    <div id="mgReinc"></div>
+    <div class="cobrador-only">
+      <div class="section-title">Estatus de gestión</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Estatus</label>
+          <select class="form-control" id="mgEstatus" onchange="onEstatusChange()">
+            <option value="sin_accion">Sin acción</option>
+            <option value="penalidad_verificada">Penalidad verificada</option>
+            <option value="contactado">Contactado</option>
+            <option value="carta_precancelacion">Carta pre-cancelación</option>
+            <option value="plan_pagos">Plan de pagos</option>
+            <option value="aviso_final">Aviso final</option>
+            <option value="regularizado">Regularizado ✅</option>
+            <option value="rescindido">Rescindido ⚫</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Próxima acción</label>
+          <input class="form-control" type="text" id="mgProxAccion" placeholder="Ej: Llamar para confirmar">
+        </div>
+        <div class="form-group" style="max-width:140px">
+          <label>Fecha</label>
+          <input class="form-control" type="date" id="mgProxFecha">
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:10px">
+        <label>Notas</label>
+        <textarea class="form-control" id="mgNotas" rows="2" placeholder="Observaciones..."></textarea>
+      </div>
+      <div class="section-title">Compromisos de pago</div>
+      <div id="compromisosList"></div>
+      <div class="form-row" style="margin-top:8px">
+        <div class="form-group" style="max-width:140px"><label>Fecha</label><input class="form-control" type="date" id="compFecha"></div>
+        <div class="form-group" style="max-width:130px"><label>Monto</label><input class="form-control" type="number" id="compMonto" placeholder="0.00"></div>
+        <div class="form-group"><label>Concepto</label><input class="form-control" type="text" id="compConcepto" placeholder="Ej: 2 mensualidades vencidas"></div>
+        <div style="display:flex;align-items:flex-end"><button class="btn btn-green" onclick="addCompromiso()">+ Agregar</button></div>
+      </div>
+      <div class="section-title">Registrar acción</div>
+      <div class="form-row">
+        <div class="form-group" style="max-width:170px">
+          <label>Tipo</label>
+          <select class="form-control" id="ctTipo">
+            <option>Llamada</option><option>WhatsApp</option><option>Email</option>
+            <option>Carta pre-cancelación</option><option>Aviso final</option>
+            <option>Carta rescisión</option><option>Visita</option><option>Otro</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Resultado / nota</label><input class="form-control" type="text" id="ctNota" placeholder="Qué pasó..."></div>
+        <div style="display:flex;align-items:flex-end"><button class="btn" onclick="addContacto()">+ Registrar</button></div>
+      </div>
+      <div class="section-title">Historial</div>
+      <div id="contactsList"></div>
+      <div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end;align-items:center">
+        <div class="saving-row" id="savingRow"><div class="spinner spinner-sm"></div>Guardando...</div>
+        <button class="btn btn-ghost" onclick="closeModal('modalGestion')">Cancelar</button>
+        <button class="btn" onclick="saveGestion()">💾 Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL WHATSAPP -->
+<div class="modal-overlay" id="modalWA">
+  <div class="modal modal-sm">
+    <div class="modal-close" onclick="closeModal('modalWA')">✕</div>
+    <div class="modal-title">📱 Mensaje WhatsApp</div>
+    <div class="modal-sub" id="waCliente">—</div>
+    <div class="section-title">Tipo de mensaje</div>
+    <div class="form-row" style="margin-bottom:10px">
+      <button class="btn btn-ghost" onclick="setWATemplate('aviso')" id="btnWAAviso">Aviso morosidad</button>
+      <button class="btn btn-ghost" onclick="setWATemplate('precancelacion')" id="btnWAPre">Pre-cancelación</button>
+      <button class="btn btn-ghost" onclick="setWATemplate('avisofinal')" id="btnWAFinal">Aviso final</button>
+    </div>
+    <div class="wa-template" id="waTemplate" contenteditable="true"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <a id="waLink" href="#" target="_blank" class="btn" style="text-decoration:none">📲 Abrir WhatsApp</a>
+      <button class="btn btn-ghost" onclick="registrarWA()">✓ Registrar</button>
+      <button class="btn btn-ghost" onclick="closeModal('modalWA')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════
+// CONFIGURACIÓN FIJA
+// ══════════════════════════════════════
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzkZJJgFvQtd5YqfuWR7ff8UFb8p6CEREgHYClkeSNFGcuwOXCeA8cThZgpIwm0e3lwZQ/exec';
+const USERS_CONFIG = {
+  'Andrea Ramirez':    { pin:'1111', role:'cobrador' },
+  'Liz Olvera':        { pin:'2222', role:'cobrador' },
+  'Nana Retana':       { pin:'3333', role:'cobrador' },
+  'ER':                { pin:'4444', role:'admin'    },
+  'FU':                { pin:'5555', role:'admin'    },
+  'Enrique Gonzalez':  { pin:'6666', role:'admin'    },
+  'Oscar Retana':      { pin:'7777', role:'admin'    },
+};
+const SECRET_KEY = 'Amarah26';
+const CFG_KEY    = 'amarah_session_v1';
+
+// ══════════════════════════════════════
+// STATE
+// ══════════════════════════════════════
+let currentUser='', currentRole='';
+let carteraData=[];
+let sortState={field:'parc_vencidas',dir:'desc',tab:'v'};
+let selectedFolios=new Set();
+let currentFolio=null, waFolioActivo=null;
+let pinBuffer='';
+let pendingUser='';
+
+const RISK_LABELS={al_corriente:'Al corriente',aviso:'Aviso',critico:'Crítico',en_riesgo:'En riesgo',pre_rescision:'Pre-rescisión',rescision:'Rescisión'};
+const RISK_COLORS={al_corriente:'var(--green)',aviso:'var(--yellow)',critico:'var(--orange)',en_riesgo:'var(--red)',pre_rescision:'#fca5a5',rescision:'#6b7280'};
+const GEST_LABELS={sin_accion:'Sin acción',penalidad_verificada:'Penalidad verif.',contactado:'Contactado',carta_precancelacion:'Carta pre-cancel.',plan_pagos:'Plan de pagos',aviso_final:'Aviso final',regularizado:'Regularizado',rescindido:'Rescindido'};
+const MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+// ══════════════════════════════════════
+// LOGIN / PIN
+// ══════════════════════════════════════
+function init() {
+  const saved=JSON.parse(sessionStorage.getItem(CFG_KEY)||'null');
+  if(saved?.user && USERS_CONFIG[saved.user]){
+    currentUser=saved.user; currentRole=saved.role;
+    launchApp();
+  }
+  const now=new Date();
+  const ms=document.getElementById('prodMes');
+  const ay=document.getElementById('prodAnio');
+  MESES.forEach((m,i)=>{const o=document.createElement('option');o.value=i+1;o.textContent=m;if(i+1===now.getMonth()+1)o.selected=true;ms.appendChild(o);});
+  for(let y=now.getFullYear();y>=now.getFullYear()-2;y--){const o=document.createElement('option');o.value=y;o.textContent=y;if(y===now.getFullYear())o.selected=true;ay.appendChild(o);}
+}
+
+function selectUser(user, role) {
+  pendingUser=user;
+  pinBuffer='';
+  document.getElementById('pinNombre').textContent=user;
+  document.getElementById('pinError').classList.remove('show');
+  document.getElementById('stepUsuario').style.display='none';
+  document.getElementById('stepPin').classList.add('show');
+  updatePinDots();
+}
+
+function pinPress(digit) {
+  if(pinBuffer.length>=4) return;
+  pinBuffer+=digit;
+  updatePinDots();
+  if(pinBuffer.length===4) setTimeout(checkPin,120);
+}
+
+function pinDel() {
+  pinBuffer=pinBuffer.slice(0,-1);
+  updatePinDots();
+  document.getElementById('pinError').classList.remove('show');
+}
+
+function updatePinDots() {
+  for(let i=0;i<4;i++){
+    document.getElementById('dot'+i).className='pin-dot'+(i<pinBuffer.length?' filled':'');
+  }
+}
+
+function checkPin() {
+  const cfg=USERS_CONFIG[pendingUser];
+  if(cfg && pinBuffer===cfg.pin){
+    currentUser=pendingUser;
+    currentRole=cfg.role;
+    sessionStorage.setItem(CFG_KEY,JSON.stringify({user:currentUser,role:currentRole}));
+    document.getElementById('loginScreen').classList.remove('show');
+    launchApp();
+  } else {
+    // Error
+    for(let i=0;i<4;i++) document.getElementById('dot'+i).className='pin-dot error';
+    document.getElementById('pinError').classList.add('show');
+    setTimeout(()=>{
+      pinBuffer='';
+      updatePinDots();
+    },700);
+  }
+}
+
+function backToUsers() {
+  pinBuffer='';
+  pendingUser='';
+  document.getElementById('stepPin').classList.remove('show');
+  document.getElementById('stepUsuario').style.display='block';
+  document.getElementById('pinError').classList.remove('show');
+}
+
+function logout(){
+  sessionStorage.removeItem(CFG_KEY);
+  location.reload();
+}
+
+function launchApp() {
+  document.getElementById('userLabel').textContent=currentUser;
+  const rb=document.getElementById('roleBadge');
+  if(currentRole==='admin'){
+    rb.textContent='🔑 Admin'; rb.className='role-badge role-admin';
+    document.body.classList.add('is-admin');
+    document.querySelectorAll('.tab-btn.admin-only').forEach(b=>b.style.display='inline-block');
+    document.querySelectorAll('.tab-btn.cobrador-only').forEach(b=>b.style.display='none');
+    document.getElementById('tab-dashboard').classList.add('active');
+    document.getElementById('tab-vencidos').classList.remove('active');
+  } else {
+    rb.textContent='👤 Cobrador'; rb.className='role-badge role-cobrador';
+  }
+  loadData();
+}
+
+// ══════════════════════════════════════
+// API
+// ══════════════════════════════════════
+async function apiFetch(action,params={}) {
+  const url=new URL(SCRIPT_URL);
+  url.searchParams.set('key',SECRET_KEY);
+  url.searchParams.set('action',action);
+  Object.entries(params).forEach(([k,v])=>url.searchParams.set(k,v));
+  const res=await fetch(url.toString());
+  if(!res.ok) throw new Error('HTTP '+res.status);
+  return res.json();
+}
+async function apiPost(body) {
+  const url=new URL(SCRIPT_URL);
+  url.searchParams.set('key',SECRET_KEY);
+  url.searchParams.set('action',body.action);
+  url.searchParams.set('data',JSON.stringify(body.data||body));
+  const res=await fetch(url.toString());
+  if(!res.ok) throw new Error('HTTP '+res.status);
+  return res.json();
+}
+async function loadData() {
+  showLoading('Cargando cartera desde Google Sheets...');
+  try{
+    const res=await apiFetch('getData');
+    if(!res.ok) throw new Error(res.error);
+    carteraData=res.records;
+    updateLastUpdated(res.updated_at);
+    hideLoading();
+    populateAsesores(); updateKPIs(); renderVencidos(); renderTodos(); renderHoy();
+    if(currentRole==='admin') renderDashboard();
+  }catch(e){hideLoading();showToast('⚠ Error: '+e.message);}
+}
+async function refreshData(){
+  const btn=document.getElementById('refreshBtn');
+  btn.classList.add('spinning');
+  await loadData();
+  btn.classList.remove('spinning');
+  showToast('✅ Datos actualizados');
+}
+
+// ══════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════
+const fmt=(n,d=0)=>n?'$'+Number(n).toLocaleString('es-MX',{minimumFractionDigits:d,maximumFractionDigits:d}):'$0';
+const fmtK=n=>n>=1e6?'$'+(n/1e6).toFixed(2)+'M':n>=1e3?'$'+(n/1e3).toFixed(1)+'K':fmt(n);
+const badge=(cls,lbl)=>`<span class="badge badge-${cls}">${lbl}</span>`;
+const scoreChip=s=>{const cls=s<=30?'low':s<=60?'mid':s<=85?'high':'crit';return`<span class="score-chip score-${cls}">${s}</span>`;};
+const pctBar=pct=>{const c=pct>=75?'var(--green)':pct>=40?'var(--accent)':'var(--yellow)';return`<div class="pct-wrap"><div class="progress-wrap" style="width:70px"><div class="progress-fill" style="width:${Math.min(pct,100)}%;background:${c}"></div></div><span class="pct-label">${pct}%</span></div>`;};
+const reincChip=r=>{if(!r||r.nivel==='ninguna')return'<span class="reinc-none">—</span>';const icons={leve:'⚠',moderada:'🔴',cronica:'💀'};return`<span class="reinc-${r.nivel}">${icons[r.nivel]||''}×${r.total}</span>`;};
+const alertasBadge=a=>a?.length?`<span class="alerta-badge">⚡ ${a.length}</span>`:'';
+function showLoading(msg){document.getElementById('loadingText').textContent=msg||'Cargando...';document.getElementById('loadingOverlay').classList.add('show');}
+function hideLoading(){document.getElementById('loadingOverlay').classList.remove('show');}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
+function updateLastUpdated(iso){
+  const d=new Date(iso),now=new Date(),diff=Math.floor((now-d)/60000);
+  document.getElementById('updateDot').className='update-dot'+(diff>60?' stale':'');
+  document.getElementById('updateLabel').textContent=diff<2?'Actualizado ahora':diff<60?`Hace ${diff} min`:d.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
+}
+
+// ══════════════════════════════════════
+// KPIs
+// ══════════════════════════════════════
+function updateKPIs(){
+  const r=carteraData;
+  const cartera=r.reduce((s,x)=>s+(x.costo||0),0);
+  const vencida=r.reduce((s,x)=>s+(x.monto_vencido||0),0);
+  const mensual=r.reduce((s,x)=>s+(x.mensualidad||0),0);
+  const corriente=r.filter(x=>x.nivel_riesgo==='al_corriente').length;
+  const conAlertas=r.filter(x=>x.alertas?.length>0).length;
+  const now=new Date();const m=now.getMonth()+1;const a=now.getFullYear();
+  let montoReg=0,montoResc=0;
+  r.forEach(x=>{(x.contactos||[]).forEach(c=>{if(!c.fecha)return;const d=new Date(c.fecha);if(d.getMonth()+1!==m||d.getFullYear()!==a)return;if(c.tipo==='cambio_estatus'&&c.nota?.includes('regularizado'))montoReg+=x.monto_vencido||0;if(c.tipo==='cambio_estatus'&&c.nota?.includes('rescindido'))montoResc+=x.costo||0;});});
+  const today=new Date().toISOString().slice(0,10);
+  const todayCount=r.filter(x=>x.prox_fecha===today||x.alertas?.some(a=>a.urgente)).length;
+  document.getElementById('kpiCartera').textContent=fmtK(cartera);
+  document.getElementById('kpiExp').textContent=`${r.length} exp.`;
+  document.getElementById('kpiMensual').textContent=fmtK(mensual);
+  document.getElementById('kpiVencida').textContent=fmtK(vencida);
+  document.getElementById('kpiVencidaPct').textContent=`${(vencida/cartera*100).toFixed(1)}% del total`;
+  document.getElementById('kpiReg').textContent=fmtK(montoReg);
+  document.getElementById('kpiRegPct').textContent=vencida>0?`${(montoReg/vencida*100).toFixed(1)}% recuperado`:'—';
+  document.getElementById('kpiResc').textContent=fmtK(montoResc);
+  document.getElementById('kpiCorriente').textContent=corriente;
+  document.getElementById('kpiCorrientePct').textContent=`${Math.round(corriente/r.length*100)}% al corriente`;
+  document.getElementById('kpiAlertas').textContent=conAlertas;
+  document.getElementById('todayCount').textContent=todayCount;
+}
+
+// ══════════════════════════════════════
+// DASHBOARD
+// ══════════════════════════════════════
+function renderDashboard(){
+  const r=carteraData,total=r.length;
+  const niveles=[['al_corriente','Al corriente (0)','var(--green)'],['aviso','Aviso (1)','var(--yellow)'],['critico','Crítico (2)','var(--orange)'],['en_riesgo','En riesgo (3)','var(--red)'],['pre_rescision','Pre-rescisión (4)','#fca5a5'],['rescision','Rescisión (5+)','#6b7280']];
+  const byN={},byM={};
+  niveles.forEach(([k])=>{byN[k]=0;byM[k]=0;});
+  r.forEach(x=>{byN[x.nivel_riesgo]=(byN[x.nivel_riesgo]||0)+1;byM[x.nivel_riesgo]=(byM[x.nivel_riesgo]||0)+(x.monto_vencido||0);});
+  const byG={};Object.keys(GEST_LABELS).forEach(k=>byG[k]=0);r.forEach(x=>{byG[x.estatus_gestion]=(byG[x.estatus_gestion]||0)+1;});
+  const cartera=r.reduce((s,x)=>s+(x.costo||0),0),vencida=r.reduce((s,x)=>s+(x.monto_vencido||0),0),mensual=r.reduce((s,x)=>s+(x.mensualidad||0),0);
+  const historial={};
+  r.forEach(x=>{(x.contactos||[]).forEach(c=>{if(!c.fecha||c.tipo!=='cambio_estatus')return;const d=new Date(c.fecha);const k=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;if(!historial[k])historial[k]={reg:0,resc:0,montoReg:0,montoResc:0};if(c.nota?.includes('regularizado')){historial[k].reg++;historial[k].montoReg+=x.monto_vencido||0;}if(c.nota?.includes('rescindido')){historial[k].resc++;historial[k].montoResc+=x.costo||0;}});});
+  const histRows=Object.entries(historial).sort((a,b)=>b[0].localeCompare(a[0])).slice(0,6);
+  document.getElementById('dashGrid').innerHTML=`
+    <div class="dash-card">
+      <div class="dash-card-title">Distribución de riesgo</div>
+      ${niveles.map(([k,lbl,color])=>`<div class="risk-row"><div class="risk-label">${lbl}</div><div class="risk-bar-wrap"><div class="risk-bar-fill" style="width:${total?((byN[k]||0)/total*100).toFixed(1):0}%;background:${color}"></div></div><div class="risk-stats"><div class="risk-count" style="color:${color}">${byN[k]||0}</div><div class="risk-monto">${byM[k]>0?fmtK(byM[k]):''}</div></div></div>`).join('')}
+    </div>
+    <div class="dash-card">
+      <div class="dash-card-title">Estatus de gestión</div>
+      ${Object.entries(GEST_LABELS).map(([k,lbl])=>`<div class="risk-row"><div class="risk-label">${lbl}</div><div class="risk-bar-wrap"><div class="risk-bar-fill" style="width:${total?((byG[k]||0)/total*100).toFixed(1):0}%;background:var(--accent)"></div></div><div class="risk-stats"><div class="risk-count">${byG[k]||0}</div></div></div>`).join('')}
+    </div>
+    <div class="dash-card">
+      <div class="dash-card-title">Resumen financiero</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        ${[['Cartera total',fmtK(cartera),'var(--accent)'],['Mensualidades esperadas',fmtK(mensual),'#2dd4bf'],['Cartera vencida',fmtK(vencida),'var(--red)'],['Cartera sana',fmtK(cartera-vencida),'var(--green)'],['% Al corriente',Math.round((byN.al_corriente||0)/total*100)+'%','var(--green)'],['% Cartera vencida',(vencida/cartera*100).toFixed(1)+'%','var(--red)']].map(([l,v,c])=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)"><span style="font-size:12px;color:var(--text2)">${l}</span><span style="font-size:15px;font-weight:700;color:${c}">${v}</span></div>`).join('')}
+      </div>
+    </div>
+    <div class="dash-card full">
+      <div class="dash-card-title">Historial mensual</div>
+      ${histRows.length===0?'<div style="color:var(--text2);font-size:13px;padding:10px 0">Sin historial aún — se construye conforme el equipo registre gestiones</div>':`
+        <table class="hist-table"><thead><tr><th>Mes</th><th>Regularizados</th><th>Monto recuperado</th><th>Rescindidos</th><th>Monto rescindido</th></tr></thead>
+        <tbody>${histRows.map(([k,v])=>`<tr><td>${k}</td><td style="color:var(--green);font-weight:600">${v.reg}</td><td style="color:var(--green)">${fmtK(v.montoReg)}</td><td style="color:var(--text2)">${v.resc}</td><td style="color:var(--text2)">${fmtK(v.montoResc)}</td></tr>`).join('')}</tbody></table>`}
+    </div>`;
+}
+
+// ══════════════════════════════════════
+// PRODUCTIVIDAD
+// ══════════════════════════════════════
+async function renderProductividad(){
+  const mes=document.getElementById('prodMes').value,anio=document.getElementById('prodAnio').value;
+  const el=document.getElementById('prodContent');
+  el.innerHTML='<div style="color:var(--text2);padding:20px">Cargando...</div>';
+  try{
+    const res=await apiFetch('getProductividad',{mes,anio});
+    if(!res.ok) throw new Error(res.error);
+    const prod=res.productividad,cobradores=Object.keys(prod);
+    el.innerHTML=`
+      <div class="dash-card" style="margin-bottom:14px">
+        <div class="dash-card-title">Productividad — ${MESES[mes-1]} ${anio}</div>
+        <table class="prod-table"><thead><tr><th>Cobrador</th><th>Llamadas</th><th>WhatsApps</th><th>Correos</th><th>Cartas pre-cancel.</th><th>Avisos finales</th><th>Cartas rescisión</th><th>Total</th></tr></thead>
+        <tbody>${cobradores.map(c=>{const p=prod[c];return`<tr><td style="font-weight:600">${c}</td><td>${p.llamadas}</td><td>${p.whatsapps}</td><td>${p.correos}</td><td>${p.cartas_precancelacion}</td><td>${p.avisos_finales}</td><td>${p.cartas_rescision}</td><td style="font-weight:700;color:var(--accent)">${p.total_contactos}</td></tr>`;}).join('')}</tbody></table>
+      </div>
+      <div class="dash-card">
+        <div class="dash-card-title">Efectividad — ${MESES[mes-1]} ${anio}</div>
+        <table class="prod-table"><thead><tr><th>Cobrador</th><th>Regularizados</th><th>Monto recuperado</th><th>Rescindidos</th><th>Compromisos ✓</th><th>Compromisos ✗</th><th>Score</th></tr></thead>
+        <tbody>${cobradores.map(c=>{const p=prod[c];return`<tr><td style="font-weight:600">${c}</td><td style="color:var(--green);font-weight:600">${p.regularizados}</td><td style="color:var(--green)">${fmtK(p.monto_recuperado)}</td><td style="color:var(--text2)">${p.rescindidos}</td><td style="color:var(--green)">${p.compromisos_cumplidos}</td><td style="color:${p.compromisos_incumplidos>0?'var(--red)':'var(--text2)'}">${p.compromisos_incumplidos}</td><td><div class="efectividad-bar"><div class="progress-wrap" style="width:70px"><div class="efect-fill" style="width:${p.score_efectividad}%"></div></div><span class="efect-score">${p.score_efectividad}</span></div></td></tr>`;}).join('')}</tbody></table>
+      </div>`;
+  }catch(e){el.innerHTML=`<div style="color:var(--red)">${e.message}</div>`;}
+}
+
+// ══════════════════════════════════════
+// TABLES
+// ══════════════════════════════════════
+function applySort(recs,f,d){return[...recs].sort((a,b)=>{let va=a[f],vb=b[f];if(typeof va==='string')va=va.toLowerCase();if(typeof vb==='string')vb=vb.toLowerCase();if(va<vb)return d==='asc'?-1:1;if(va>vb)return d==='asc'?1:-1;return 0;});}
+function sortTable(f,tab){sortState=sortState.tab===tab&&sortState.field===f?{...sortState,dir:sortState.dir==='asc'?'desc':'asc'}:{field:f,dir:'desc',tab};if(tab==='v')renderVencidos();else renderTodos();}
+
+function getFilteredVencidos(){
+  const q=(document.getElementById('searchV').value||'').toLowerCase();
+  const riesgo=document.getElementById('fRiesgo').value,gestion=document.getElementById('fGestion').value,asesor=document.getElementById('fAsesorV').value,soloA=document.getElementById('fAlerta').value;
+  let r=carteraData.filter(x=>x.nivel_riesgo!=='al_corriente');
+  if(q)r=r.filter(x=>x.folio.includes(q)||(x.cliente||'').toLowerCase().includes(q)||(x.telefono||'').includes(q)||(x.asesor||'').toLowerCase().includes(q));
+  if(riesgo)r=r.filter(x=>x.nivel_riesgo===riesgo);if(gestion)r=r.filter(x=>x.estatus_gestion===gestion);if(asesor)r=r.filter(x=>x.asesor===asesor);if(soloA)r=r.filter(x=>x.alertas?.length>0);return r;
+}
+function renderVencidos(){
+  const sf=sortState.tab==='v'?sortState.field:'parc_vencidas',sd=sortState.tab==='v'?sortState.dir:'desc';
+  const recs=applySort(getFilteredVencidos(),sf,sd);
+  document.getElementById('countV').textContent=`${recs.length} expedientes`;
+  document.getElementById('tbodyV').innerHTML=recs.map(r=>`
+    <tr class="${r.alertas?.length?'has-alert':''}" onclick="openGestion('${r.folio}',event)">
+      <td onclick="event.stopPropagation()"><input type="checkbox" class="checkbox-row" data-folio="${r.folio}" ${selectedFolios.has(r.folio)?'checked':''} onchange="toggleSelect('${r.folio}',this.checked)"></td>
+      <td class="td-folio">${r.folio}</td>
+      <td class="td-cliente" title="${r.cliente}">${r.cliente}</td>
+      <td class="td-num" style="font-weight:700;color:${RISK_COLORS[r.nivel_riesgo]}">${r.parc_vencidas}</td>
+      <td class="td-num" style="color:var(--red)">${fmt(r.monto_vencido)}</td>
+      <td class="td-num">${fmt(r.mensualidad)}</td>
+      <td>${badge(r.nivel_riesgo,RISK_LABELS[r.nivel_riesgo])}</td>
+      <td>${scoreChip(r.score_riesgo||0)}</td>
+      <td>${badge(r.estatus_gestion,GEST_LABELS[r.estatus_gestion])}</td>
+      <td>${reincChip(r.reincidencia)}</td>
+      <td>${alertasBadge(r.alertas)}</td>
+      <td>${r.fecha_ultimo_pago||'—'}</td>
+      <td>${pctBar(r.pct_pagado)}</td>
+      <td><div class="td-actions" onclick="event.stopPropagation()">
+        <span class="action-btn wa" title="WhatsApp" onclick="openWA('${r.folio}')">💬</span>
+        <span class="action-btn call" title="Registrar llamada" onclick="quickLog('${r.folio}','Llamada')">📞</span>
+        <span class="action-btn mail" title="Email" onclick="quickLog('${r.folio}','Email')">✉</span>
+        <span class="action-btn carta" title="Carta pre-cancelación" onclick="quickLog('${r.folio}','Carta pre-cancelación')">📄</span>
+      </div></td>
+    </tr>`).join('');
+}
+
+function getFilteredTodos(){
+  const q=(document.getElementById('searchT').value||'').toLowerCase(),riesgo=document.getElementById('fRiesgoT').value,asesor=document.getElementById('fAsesorT').value;
+  let r=carteraData;
+  if(q)r=r.filter(x=>x.folio.includes(q)||(x.cliente||'').toLowerCase().includes(q)||(x.telefono||'').includes(q));
+  if(riesgo)r=r.filter(x=>x.nivel_riesgo===riesgo);if(asesor)r=r.filter(x=>x.asesor===asesor);return r;
+}
+function renderTodos(){
+  const sf=sortState.tab==='t'?sortState.field:'costo',sd=sortState.tab==='t'?sortState.dir:'desc';
+  const recs=applySort(getFilteredTodos(),sf,sd);
+  document.getElementById('countT').textContent=`${recs.length} expedientes`;
+  document.getElementById('tbodyT').innerHTML=recs.map(r=>`
+    <tr onclick="openGestion('${r.folio}',event)">
+      <td class="td-folio">${r.folio}</td>
+      <td class="td-cliente" title="${r.cliente}">${r.cliente}</td>
+      <td class="td-num">${fmtK(r.costo)}</td>
+      <td class="td-num">${fmtK(r.pagado)}</td>
+      <td class="td-num">${fmtK(r.saldo)}</td>
+      <td class="td-num" style="color:${r.parc_vencidas>0?'var(--red)':'var(--green)'}">${r.parc_vencidas}</td>
+      <td>${badge(r.nivel_riesgo,RISK_LABELS[r.nivel_riesgo])}</td>
+      <td>${scoreChip(r.score_riesgo||0)}</td>
+      <td>${badge(r.estatus_gestion,GEST_LABELS[r.estatus_gestion])}</td>
+      <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis" title="${r.asesor}">${r.asesor||'—'}</td>
+      <td><div class="td-actions" onclick="event.stopPropagation()">
+        <span class="action-btn wa" onclick="openWA('${r.folio}')">💬</span>
+        <span class="action-btn call" onclick="quickLog('${r.folio}','Llamada')">📞</span>
+        <span class="action-btn mail" onclick="quickLog('${r.folio}','Email')">✉</span>
+      </div></td>
+    </tr>`).join('');
+}
+
+function renderHoy(){
+  const today=new Date().toISOString().slice(0,10);
+  const recs=carteraData.filter(r=>r.prox_fecha===today||r.alertas?.some(a=>a.urgente));
+  const el=document.getElementById('hoyContent');
+  if(!recs.length){el.innerHTML='<div class="hoy-empty">✅ Sin acciones urgentes para hoy</div>';return;}
+  el.innerHTML=`<p style="color:var(--text2);margin-bottom:14px;font-size:13px">${recs.length} expediente(s) requieren atención hoy</p>
+    <table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr>
+      ${['Folio','Cliente','Alerta / Acción','Nivel','Gestión','Reincidencia'].map(h=>`<th style="text-align:left;padding:8px 10px;background:var(--bg2);color:var(--text2);font-size:10px;text-transform:uppercase;border-bottom:1px solid var(--border)">${h}</th>`).join('')}
+    </tr></thead><tbody>
+      ${recs.map(r=>`<tr style="border-bottom:1px solid var(--border);cursor:pointer${r.alertas?.length?';border-left:3px solid var(--red)':''}" onclick="openGestion('${r.folio}',event)">
+        <td style="padding:8px 10px;color:var(--accent);font-weight:600">${r.folio}</td>
+        <td style="padding:8px 10px;font-weight:500">${r.cliente}</td>
+        <td style="padding:8px 10px">${r.alertas?.map(a=>`<div class="alerta-badge" style="margin-bottom:2px">⚡ ${a.mensaje}</div>`).join('')||`<span style="color:var(--yellow)">${r.prox_accion||'Acción programada'}</span>`}</td>
+        <td style="padding:8px 10px">${badge(r.nivel_riesgo,RISK_LABELS[r.nivel_riesgo])}</td>
+        <td style="padding:8px 10px">${badge(r.estatus_gestion,GEST_LABELS[r.estatus_gestion])}</td>
+        <td style="padding:8px 10px">${reincChip(r.reincidencia)}</td>
+      </tr>`).join('')}
+    </tbody></table>`;
+}
+
+// ══════════════════════════════════════
+// MODAL GESTIÓN
+// ══════════════════════════════════════
+function openGestion(folio,event){
+  if(event?.target.closest('.action-btn,.checkbox-row,.checkbox-all'))return;
+  currentFolio=folio;
+  const r=carteraData.find(x=>x.folio===folio);if(!r)return;
+  document.getElementById('mgNombre').textContent=r.cliente;
+  document.getElementById('mgSub').textContent=`Folio ${r.folio} · ${r.unidad} · ${r.plan}`;
+  document.getElementById('mgAlertas').innerHTML=(r.alertas||[]).map(a=>`<div class="alerta-item"><div class="alerta-icon">⚡</div><div>${a.mensaje}</div></div>`).join('');
+  document.getElementById('mgInfo').innerHTML=`
+    <div class="modal-field"><label>Teléfono</label><div class="val">${r.telefono||'—'}</div></div>
+    <div class="modal-field"><label>Asesor</label><div class="val">${r.asesor||'—'}</div></div>
+    <div class="modal-field"><label>Valor contrato</label><div class="val" style="font-size:17px;font-weight:700">${fmt(r.costo)}</div></div>
+    <div class="modal-field"><label>Saldo actual</label><div class="val">${fmt(r.saldo)}</div></div>
+    <div class="modal-field"><label>Mensualidad</label><div class="val">${fmt(r.mensualidad)}</div></div>
+    <div class="modal-field"><label>% Pagado</label><div class="val">${r.pct_pagado}%<div class="progress-wrap" style="margin-top:4px"><div class="progress-fill" style="width:${r.pct_pagado}%;background:var(--accent)"></div></div></div></div>
+    <div class="modal-field"><label>Parc. vencidas</label><div class="val" style="color:${r.parc_vencidas>0?'var(--red)':'var(--green)'}">${r.parc_vencidas} · ${badge(r.nivel_riesgo,RISK_LABELS[r.nivel_riesgo])}</div></div>
+    <div class="modal-field"><label>Monto vencido</label><div class="val" style="color:var(--red);font-weight:700">${fmt(r.monto_vencido)}</div></div>
+    <div class="modal-field"><label>Score riesgo</label><div class="val">${scoreChip(r.score_riesgo||0)}</div></div>
+    <div class="modal-field"><label>Pagos realizados</label><div class="val">${r.pagos_realizados}</div></div>
+    <div class="modal-field"><label>Último pago</label><div class="val">${r.fecha_ultimo_pago||'—'}</div></div>
+    <div class="modal-field"><label>Correo</label><div class="val" style="font-size:12px">${r.correo||'—'}</div></div>`;
+  const reinc=r.reincidencia||{};
+  document.getElementById('mgReinc').innerHTML=reinc.total>0?`<div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:10px 13px;margin-bottom:14px;font-size:12px"><span style="font-weight:600;color:var(--red)">⚠ Reincidencia:</span>${reinc.veces_plan_pagos>0?` ${reinc.veces_plan_pagos}x plan de pagos`:''}${reinc.promesas_incumplidas>0?`<span style="color:var(--red);margin-left:8px">${reinc.promesas_incumplidas} promesa(s) incumplida(s)</span>`:''}<div style="margin-top:4px;color:var(--text2)">Nivel: <strong class="reinc-${reinc.nivel}">${{ninguna:'—',leve:'Leve',moderada:'Moderada',cronica:'⚠ Crónico — considerar rescisión'}[reinc.nivel]}</strong></div></div>`:'';
+  if(currentRole==='cobrador'){
+    document.getElementById('mgEstatus').value=r.estatus_gestion||'sin_accion';
+    document.getElementById('mgProxAccion').value=r.prox_accion||'';
+    document.getElementById('mgProxFecha').value=r.prox_fecha||'';
+    document.getElementById('mgNotas').value=r.notas||'';
+    document.getElementById('ctNota').value='';
+    renderCompromisos(r.compromisos||[]);
+    renderContactos(r.contactos||[]);
+  }
+  document.getElementById('modalGestion').classList.add('open');
+}
+
+function onEstatusChange(){
+  const est=document.getElementById('mgEstatus').value;
+  const sug={penalidad_verificada:'Llamar para primer contacto',contactado:'Esperar respuesta',carta_precancelacion:'Esperar 7 días para aviso final',plan_pagos:'Monitorear fecha de pago comprometido',aviso_final:'Esperar 2 días y proceder a rescisión'};
+  if(sug[est]&&!document.getElementById('mgProxAccion').value) document.getElementById('mgProxAccion').value=sug[est];
+}
+
+function renderCompromisos(comps){
+  const el=document.getElementById('compromisosList');
+  const today=new Date().toISOString().slice(0,10);
+  if(!comps.length){el.innerHTML='<div class="no-items">Sin compromisos registrados</div>';return;}
+  el.innerHTML=comps.map(c=>{
+    const vencido=c.fecha<today&&c.estatus==='pendiente',esHoy=c.fecha===today&&c.estatus==='pendiente';
+    return`<div class="compromiso-entry">
+      <div class="compromiso-fecha" style="color:${vencido?'var(--red)':esHoy?'var(--yellow)':'var(--text)'}">${c.fecha}${vencido?' ⚠':esHoy?' 🔔':''}</div>
+      <div class="compromiso-monto">${fmt(c.monto)}</div>
+      <div style="font-size:12px;color:var(--text2);flex:1">${c.concepto||''}</div>
+      <div class="compromiso-status">${c.estatus==='pendiente'?`<button class="btn btn-green" style="padding:3px 8px;font-size:11px" onclick="marcarCompromiso('${c.id}','cumplido')">✓ Pagó</button><button class="btn btn-red" style="padding:3px 8px;font-size:11px" onclick="marcarCompromiso('${c.id}','incumplido')">✗ No pagó</button>`:c.estatus==='cumplido'?`<span style="color:var(--green);font-size:11px;font-weight:600">✓ Cumplido</span>`:`<span style="color:var(--red);font-size:11px;font-weight:600">✗ Incumplido</span>`}</div>
+    </div>`;
+  }).join('');
+}
+
+async function addCompromiso(){
+  const fecha=document.getElementById('compFecha').value,monto=parseFloat(document.getElementById('compMonto').value)||0,concepto=document.getElementById('compConcepto').value;
+  if(!fecha||!monto){showToast('⚠ Ingresa fecha y monto');return;}
+  const comp={id:Date.now().toString(),fecha,monto,concepto,estatus:'pendiente',cobrador:currentUser,creado:new Date().toISOString().slice(0,10)};
+  const r=carteraData.find(x=>x.folio===currentFolio);
+  try{
+    await apiPost({action:'saveCompromiso',data:{folio:currentFolio,compromiso:comp,usuario:currentUser}});
+    if(r)r.compromisos=[...(r.compromisos||[]),comp];
+    renderCompromisos(r?.compromisos||[]);
+    document.getElementById('compFecha').value='';document.getElementById('compMonto').value='';document.getElementById('compConcepto').value='';
+    showToast('✅ Compromiso registrado');
+  }catch(e){showToast('⚠ Error: '+e.message);}
+}
+
+async function marcarCompromiso(compId,nuevoEstatus){
+  const r=carteraData.find(x=>x.folio===currentFolio);if(!r)return;
+  const comp=r.compromisos.find(c=>c.id===compId);if(!comp)return;
+  comp.estatus=nuevoEstatus;
+  try{
+    await apiPost({action:'saveCompromiso',data:{folio:currentFolio,compromiso:comp,usuario:currentUser}});
+    renderCompromisos(r.compromisos);
+    showToast(nuevoEstatus==='cumplido'?'✅ Pago registrado':'⚠ Incumplimiento registrado');
+  }catch(e){showToast('⚠ Error: '+e.message);}
+}
+
+function renderContactos(contactos){
+  const el=document.getElementById('contactsList');
+  if(!contactos.length){el.innerHTML='<div class="no-items">Sin acciones registradas</div>';return;}
+  el.innerHTML=[...contactos].reverse().map(c=>`<div class="contact-entry"><div class="contact-header"><span class="contact-tipo">${c.tipo}</span><span>${c.fecha} ${c.hora||''} · ${c.usuario}</span></div><div style="color:var(--text);line-height:1.4">${c.nota||'—'}</div></div>`).join('');
+}
+
+async function addContacto(){
+  const tipo=document.getElementById('ctTipo').value,nota=document.getElementById('ctNota').value;
+  const now=new Date();
+  const contacto={fecha:now.toISOString().slice(0,10),hora:now.toTimeString().slice(0,5),usuario:currentUser,tipo,nota};
+  const r=carteraData.find(x=>x.folio===currentFolio);
+  try{
+    await apiPost({action:'saveContacto',data:{folio:currentFolio,contacto}});
+    if(r)r.contactos=[...(r.contactos||[]),contacto];
+    renderContactos(r?.contactos||[]);
+    document.getElementById('ctNota').value='';
+    showToast('✅ Acción registrada');
+  }catch(e){showToast('⚠ Error: '+e.message);}
+}
+
+async function saveGestion(){
+  const estatus=document.getElementById('mgEstatus').value,proxAccion=document.getElementById('mgProxAccion').value,proxFecha=document.getElementById('mgProxFecha').value,notas=document.getElementById('mgNotas').value;
+  const r=carteraData.find(x=>x.folio===currentFolio)||{};
+  const prevEstatus=r.estatus_gestion;
+  const contactos=[...(r.contactos||[])];
+  if(estatus!==prevEstatus) contactos.push({fecha:new Date().toISOString().slice(0,10),hora:new Date().toTimeString().slice(0,5),usuario:currentUser,tipo:'cambio_estatus',nota:`${GEST_LABELS[prevEstatus]||prevEstatus} → ${GEST_LABELS[estatus]||estatus}`});
+  const fechaContactado=(estatus==='contactado'&&prevEstatus!=='contactado')?new Date().toISOString().slice(0,10):(r.fecha_contactado||'');
+  const fechaCarta=(estatus==='carta_precancelacion'&&prevEstatus!=='carta_precancelacion')?new Date().toISOString().slice(0,10):(r.fecha_carta||'');
+  const fechaAvisoFinal=(estatus==='aviso_final'&&prevEstatus!=='aviso_final')?new Date().toISOString().slice(0,10):(r.fecha_aviso_final||'');
+  document.getElementById('savingRow').classList.add('show');
+  try{
+    await apiPost({action:'saveSeguimiento',data:{folio:currentFolio,estatus,proxAccion,proxFecha,notas,contactos,compromisos:r.compromisos||[],fechaContactado,fechaCarta,fechaAvisoFinal,cobrador:currentUser,usuario:currentUser}});
+    if(r)Object.assign(r,{estatus_gestion:estatus,prox_accion:proxAccion,prox_fecha:proxFecha,notas,contactos,fecha_contactado:fechaContactado,fecha_carta:fechaCarta,fecha_aviso_final:fechaAvisoFinal});
+    document.getElementById('savingRow').classList.remove('show');
+    updateKPIs();renderVencidos();renderTodos();renderHoy();
+    if(currentRole==='admin')renderDashboard();
+    closeModal('modalGestion');
+    showToast('✅ Guardado en Google Sheets');
+  }catch(e){document.getElementById('savingRow').classList.remove('show');showToast('⚠ Error: '+e.message);}
+}
+
+// ══════════════════════════════════════
+// QUICK LOG / WHATSAPP
+// ══════════════════════════════════════
+async function quickLog(folio,tipo){
+  const r=carteraData.find(x=>x.folio===folio);if(!r)return;
+  const contacto={fecha:new Date().toISOString().slice(0,10),hora:new Date().toTimeString().slice(0,5),usuario:currentUser,tipo,nota:''};
+  try{await apiPost({action:'saveContacto',data:{folio,contacto}});if(r)r.contactos=[...(r.contactos||[]),contacto];showToast(`✅ ${tipo} registrado`);}catch(e){showToast('⚠ '+e.message);}
+}
+
+function openWA(folio){
+  waFolioActivo=folio;
+  const r=carteraData.find(x=>x.folio===folio);if(!r)return;
+  document.getElementById('waCliente').textContent=`${r.cliente} · Folio ${r.folio} · Tel: ${r.telefono}`;
+  setWATemplate(r.parc_vencidas>=4?'avisofinal':r.parc_vencidas>=2?'precancelacion':'aviso');
+  document.getElementById('modalWA').classList.add('open');
+}
+
+function setWATemplate(tipo){
+  const r=carteraData.find(x=>x.folio===waFolioActivo);if(!r)return;
+  const t={
+    aviso:`Hola ${r.cliente}, le escribimos de Grupo Ureca de México sobre su expediente ${r.folio}. Tiene ${r.parc_vencidas} mensualidad(es) pendiente(s) por un total de ${fmt(r.monto_vencido)}. Le recordamos que mantenerse al corriente es importante para conservar su contrato. Por favor contáctenos para regularizar su situación. Gracias.`,
+    precancelacion:`Estimado/a ${r.cliente}, le informamos que su expediente ${r.folio} presenta ${r.parc_vencidas} mensualidades vencidas por un total de ${fmt(r.monto_vencido)}. Conforme a su contrato, le notificamos formalmente que de no regularizar su situación en los próximos 7 días, procederemos a la cancelación del contrato. Por favor comuníquese con nosotros a la brevedad para encontrar una solución.`,
+    avisofinal:`AVISO FINAL — Estimado/a ${r.cliente}, su expediente ${r.folio} tiene ${r.parc_vencidas} mensualidades vencidas. Le informamos que en 2 días su contrato quedará rescindido si no regulariza su situación. Es su última oportunidad para conservar su terreno. Contáctenos HOY.`,
+  };
+  document.getElementById('waTemplate').textContent=t[tipo]||t.aviso;
+  const phone=(r.telefono||'').replace(/\D/g,'');
+  document.getElementById('waLink').href=`https://wa.me/${phone}?text=${encodeURIComponent(document.getElementById('waTemplate').textContent)}`;
+}
+
+async function registrarWA(){
+  const msg=document.getElementById('waTemplate').textContent;
+  const tipo=msg.includes('AVISO FINAL')?'Aviso final':msg.includes('cancelación')?'Carta pre-cancelación':'WhatsApp';
+  await quickLog(waFolioActivo,tipo);
+  closeModal('modalWA');
+  showToast('✅ WhatsApp registrado');
+}
+
+// ══════════════════════════════════════
+// BULK / SELECTION / MISC
+// ══════════════════════════════════════
+function toggleSelect(f,c){if(c)selectedFolios.add(f);else selectedFolios.delete(f);updateBulkBar();}
+function toggleAll(cb){document.querySelectorAll('.checkbox-row').forEach(r=>{r.checked=cb.checked;toggleSelect(r.dataset.folio,cb.checked);});}
+function clearSelection(){selectedFolios.clear();document.querySelectorAll('.checkbox-row,.checkbox-all').forEach(c=>c.checked=false);updateBulkBar();}
+function updateBulkBar(){document.getElementById('bulkCount').textContent=`${selectedFolios.size} seleccionados`;document.getElementById('bulkBar').classList.toggle('visible',selectedFolios.size>0);}
+async function bulkAction(estatus){
+  showLoading('Guardando...');
+  const folios=[...selectedFolios];
+  for(const folio of folios){const r=carteraData.find(x=>x.folio===folio)||{};await apiPost({action:'saveSeguimiento',data:{folio,estatus,proxAccion:r.prox_accion||'',proxFecha:r.prox_fecha||'',notas:r.notas||'',contactos:r.contactos||[],compromisos:r.compromisos||[],cobrador:currentUser,usuario:currentUser,fechaContactado:r.fecha_contactado||'',fechaCarta:r.fecha_carta||'',fechaAvisoFinal:r.fecha_aviso_final||''}});if(r)r.estatus_gestion=estatus;}
+  hideLoading();clearSelection();updateKPIs();renderVencidos();renderTodos();
+  showToast(`✅ ${folios.length} expedientes actualizados`);
+}
+
+function switchTab(tab,e){
+  const btn=e?.target.closest('.tab-btn');
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  document.getElementById('tab-'+tab).classList.add('active');
+  if(tab==='hoy')renderHoy();if(tab==='dashboard')renderDashboard();if(tab==='productividad')renderProductividad();
+}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('open');}));
+
+function populateAsesores(){
+  const asesores=[...new Set(carteraData.map(r=>r.asesor).filter(Boolean))].sort();
+  ['fAsesorV','fAsesorT'].forEach(id=>{const sel=document.getElementById(id);sel.innerHTML='<option value="">Todos los asesores</option>';asesores.forEach(a=>{const o=document.createElement('option');o.value=a;o.textContent=a;sel.appendChild(o);});});
+}
+
+function exportCSV(tab){
+  const recs=tab==='vencidos'?getFilteredVencidos():getFilteredTodos();
+  const headers=['Folio','Cliente','Teléfono','Asesor','Nivel','Vencidas','Monto Vencido','Mensualidad','Costo','Pagado','Saldo','% Pagado','Score','Gestión','Reincidencia','Próx Acción','Próx Fecha','Últ Pago'];
+  const rows=recs.map(r=>[r.folio,r.cliente,r.telefono,r.asesor,r.nivel_riesgo,r.parc_vencidas,r.monto_vencido,r.mensualidad,r.costo,r.pagado,r.saldo,r.pct_pagado,r.score_riesgo,r.estatus_gestion,r.reincidencia?.total||0,r.prox_accion,r.prox_fecha,r.fecha_ultimo_pago].map(v=>`"${(v||'').toString().replace(/"/g,'""')}"`).join(','));
+  const blob=new Blob([[headers.join(','),...rows].join('\n')],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`cobranza_amarah_${new Date().toISOString().slice(0,10)}.csv`;a.click();
+}
+
+init();
+</script>
+</body>
+</html>
