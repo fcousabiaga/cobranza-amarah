@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cobranza Amarah · Grupo Ureca</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+  :root {
+    --bg:#0f1117; --bg2:#1a1d27; --bg3:#22263a; --border:#2e3248;
+    --text:#e8eaf0; --text2:#8892a4;
+    --accent:#6c63ff; --accent2:#8b5cf6;
+    --green:#22c55e; --yellow:#f59e0b; --orange:#f97316; --red:#ef4444;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px}
+
+  /* ── CONFIG SCREEN ── */
+  .config-screen{display:none;position:fixed;inset:0;background:var(--bg);z-index:9999;
+    align-items:center;justify-content:center;flex-direction:column;gap:24px}
+  .config-screen.show{display:flex}
+  .config-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;
+    padding:40px;width:100%;max-width:480px;display:flex;flex-direction:column;gap:20px}
+  .config-logo{font-size:22px;font-weight:700;text-align:center}
+  .config-logo span{color:var(--accent)}
+  .config-subtitle{font-size:13px;color:var(--text2);text-align:center;margin-top:-12px}
+  .config-field label{font-size:11px;color:var(--text2);text-transform:uppercase;
+    letter-spacing:.5px;display:block;margin-bottom:6px}
+  .config-input{width:100%;background:var(--bg3);border:1px solid var(--border);
+    border-radius:8px;padding:10px 14px;color:var(--text);font-size:13px;
+    font-family:inherit;outline:none;transition:border-color .2s}
+  .config-input:focus{border-color:var(--accent)}
+  .config-hint{font-size:11px;color:var(--text2);margin-top:4px}
+  .config-btn{background:var(--accent);color:#fff;border:none;border-radius:8px;
+    padding:12px;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;
+    transition:background .15s}
+  .config-btn:hover{background:var(--accent2)}
+  .config-error{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);
+    border-radius:8px;padding:10px 14px;font-size:12px;color:var(--red);display:none}
+  .config-error.show{display:block}
+
+  /* ── LOADING ── */
+  .loading-overlay{display:none;position:fixed;inset:0;background:rgba(15,17,23,.92);
+    z-index:500;align-items:center;justify-content:center;flex-direction:column;gap:16px}
+  .loading-overlay.show{display:flex}
+  .spinner{width:40px;height:40px;border:3px solid var(--border);
+    border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .loading-text{font-size:13px;color:var(--text2)}
+
+  /* ── TOPBAR ── */
+  .topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 24px;
+    height:56px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100}
+  .topbar-logo{font-size:16px;font-weight:700;letter-spacing:-.5px;display:flex;align-items:center;gap:8px}
+  .topbar-logo span{color:var(--accent)}
+  .update-chip{display:flex;align-items:center;gap:6px;background:var(--bg3);
+    border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-size:11px;color:var(--text2)}
+  .update-dot{width:6px;height:6px;border-radius:50%;background:var(--green)}
+  .update-dot.stale{background:var(--yellow)}
+  .topbar-sep{flex:1}
+  .role-badge{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600}
+  .role-cobrador{background:rgba(108,99,255,.15);color:var(--accent)}
+  .role-admin{background:rgba(239,68,68,.15);color:var(--red)}
+  .user-selector{display:flex;align-items:center;gap:8px;background:var(--bg3);
+    border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:13px;color:var(--text2)}
+  .user-selector select{background:transparent;border:none;color:var(--text);
+    font-size:13px;font-family:inherit;cursor:pointer;outline:none}
+  .user-selector select option{background:var(--bg2)}
+  .refresh-btn{background:var(--bg3);border:1px solid var(--border);border-radius:8px;
+    padding:6px 12px;color:var(--text2);font-size:12px;cursor:pointer;
+    display:flex;align-items:center;gap:6px;transition:all .15s}
+  .refresh-btn:hover{background:var(--accent);border-color:var(--accent);color:#fff}
+  .refresh-btn.spinning svg{animation:spin .8s linear infinite}
+
+  /* ── KPIs ── */
+  .kpi-bar{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;padding:20px 24px 0}
+  @media(max-width:1200px){.kpi-bar{grid-template-columns:repeat(3,1fr)}}
+  @media(max-width:700px){.kpi-bar{grid-template-columns:repeat(2,1fr)}}
+  .kpi-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);
+    padding:16px;display:flex;flex-direction:column;gap:4px}
+  .kpi-label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
+  .kpi-value{font-size:22px;font-weight:700;line-height:1.1}
+  .kpi-sub{font-size:11px;color:var(--text2)}
+  .kpi-green .kpi-value{color:var(--green)} .kpi-yellow .kpi-value{color:var(--yellow)}
+  .kpi-orange .kpi-value{color:var(--orange)} .kpi-red .kpi-value{color:var(--red)}
+  .kpi-accent .kpi-value{color:var(--accent)}
+
+  /* ── TABS ── */
+  .tabs-bar{display:flex;gap:4px;padding:16px 24px 0;border-bottom:1px solid var(--border)}
+  .tab-btn{background:none;border:none;color:var(--text2);font-size:13px;font-family:inherit;
+    padding:8px 16px 10px;cursor:pointer;border-bottom:2px solid transparent;
+    transition:color .15s,border-color .15s;font-weight:500;margin-bottom:-1px}
+  .tab-btn:hover{color:var(--text)}
+  .tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+  .tab-content{display:none} .tab-content.active{display:block}
+
+  /* ── ADMIN VIEW ── */
+  .admin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;padding:20px 24px}
+  @media(max-width:900px){.admin-grid{grid-template-columns:1fr}}
+  .admin-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
+  .admin-card-title{font-size:13px;font-weight:600;color:var(--text2);
+    text-transform:uppercase;letter-spacing:.5px;margin-bottom:16px}
+  .risk-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .risk-label{font-size:13px;flex:1}
+  .risk-bar-wrap{flex:2;background:var(--bg3);border-radius:4px;height:8px;overflow:hidden}
+  .risk-bar-fill{height:100%;border-radius:4px;transition:width .5s}
+  .risk-count{font-size:13px;font-weight:600;width:32px;text-align:right}
+
+  /* ── FILTERS ── */
+  .filters-bar{display:flex;gap:10px;padding:14px 24px;flex-wrap:wrap;align-items:center}
+  .search-box{background:var(--bg2);border:1px solid var(--border);border-radius:8px;
+    padding:7px 12px;color:var(--text);font-size:13px;font-family:inherit;
+    outline:none;width:260px;transition:border-color .2s}
+  .search-box:focus{border-color:var(--accent)}
+  .filter-select{background:var(--bg2);border:1px solid var(--border);border-radius:8px;
+    padding:7px 10px;color:var(--text);font-size:13px;font-family:inherit;
+    outline:none;cursor:pointer;transition:border-color .2s}
+  .filter-select:focus{border-color:var(--accent)}
+  .filter-select option{background:var(--bg2)}
+  .filters-sep{flex:1}
+  .records-count{font-size:12px;color:var(--text2)}
+
+  /* ── BUTTONS ── */
+  .btn{background:var(--accent);color:#fff;border:none;border-radius:8px;
+    padding:7px 14px;font-size:13px;font-family:inherit;font-weight:500;
+    cursor:pointer;transition:background .15s;white-space:nowrap}
+  .btn:hover{background:var(--accent2)}
+  .btn-ghost{background:var(--bg2);border:1px solid var(--border);color:var(--text2)}
+  .btn-ghost:hover{background:var(--bg3);color:var(--text)}
+
+  /* ── TABLE ── */
+  .table-wrap{padding:0 24px 24px;overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  thead th{background:var(--bg2);color:var(--text2);font-weight:500;font-size:11px;
+    text-transform:uppercase;letter-spacing:.5px;padding:10px 12px;text-align:left;
+    border-bottom:1px solid var(--border);white-space:nowrap;
+    position:sticky;top:57px;z-index:10;cursor:pointer;user-select:none}
+  thead th:hover{color:var(--text)}
+  thead th.sort-asc::after{content:' ↑';color:var(--accent)}
+  thead th.sort-desc::after{content:' ↓';color:var(--accent)}
+  tbody tr{border-bottom:1px solid var(--border);transition:background .1s;cursor:pointer}
+  tbody tr:hover{background:var(--bg2)}
+  td{padding:10px 12px;vertical-align:middle;white-space:nowrap}
+  .td-folio{font-weight:600;color:var(--accent);font-size:13px}
+  .td-cliente{font-weight:500;max-width:180px;overflow:hidden;text-overflow:ellipsis}
+  .td-num{text-align:right;font-variant-numeric:tabular-nums}
+  .td-actions{display:flex;gap:6px}
+
+  /* ── BADGES ── */
+  .badge{display:inline-block;padding:3px 8px;border-radius:20px;font-size:11px;
+    font-weight:600;text-transform:uppercase;letter-spacing:.3px;white-space:nowrap}
+  .badge-al_corriente{background:rgba(34,197,94,.15);color:var(--green)}
+  .badge-aviso{background:rgba(245,158,11,.15);color:var(--yellow)}
+  .badge-critico{background:rgba(249,115,22,.15);color:var(--orange)}
+  .badge-rescision{background:rgba(239,68,68,.15);color:var(--red)}
+  .badge-sin_accion{background:rgba(136,146,164,.15);color:var(--text2)}
+  .badge-contactado{background:rgba(108,99,255,.15);color:var(--accent)}
+  .badge-plan_pagos{background:rgba(245,158,11,.15);color:var(--yellow)}
+  .badge-regularizado{background:rgba(34,197,94,.15);color:var(--green)}
+  .badge-por_rescindir{background:rgba(239,68,68,.15);color:var(--red)}
+
+  /* ── ACTION BUTTONS ── */
+  .action-btn{display:inline-flex;align-items:center;justify-content:center;
+    width:30px;height:30px;border-radius:6px;background:var(--bg3);
+    border:1px solid var(--border);color:var(--text2);cursor:pointer;
+    font-size:14px;transition:all .15s;text-decoration:none}
+  .action-btn:hover{background:var(--accent);border-color:var(--accent);color:#fff}
+  .action-btn.whatsapp:hover{background:#22c55e;border-color:#22c55e}
+  .action-btn.call:hover{background:#3b82f6;border-color:#3b82f6}
+  .action-btn.email:hover{background:#f59e0b;border-color:#f59e0b}
+
+  /* ── BULK BAR ── */
+  .bulk-bar{display:none;align-items:center;gap:10px;padding:10px 24px;
+    background:rgba(108,99,255,.1);border-bottom:1px solid rgba(108,99,255,.3)}
+  .bulk-bar.visible{display:flex}
+  .bulk-count{font-size:13px;font-weight:600;color:var(--accent)}
+
+  /* ── MODAL ── */
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);
+    z-index:1000;align-items:center;justify-content:center;padding:20px}
+  .modal-overlay.open{display:flex}
+  .modal{background:var(--bg2);border:1px solid var(--border);border-radius:14px;
+    width:100%;max-width:680px;max-height:90vh;overflow-y:auto;
+    padding:28px;position:relative}
+  .modal-close{position:absolute;top:16px;right:16px;background:var(--bg3);
+    border:1px solid var(--border);border-radius:6px;width:30px;height:30px;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;
+    color:var(--text2);font-size:16px;transition:all .15s}
+  .modal-close:hover{background:var(--red);border-color:var(--red);color:#fff}
+  .modal-title{font-size:18px;font-weight:700;margin-bottom:4px}
+  .modal-folio{font-size:13px;color:var(--accent);margin-bottom:20px}
+  .modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+  .modal-field label{font-size:11px;color:var(--text2);text-transform:uppercase;
+    letter-spacing:.4px;display:block;margin-bottom:3px}
+  .modal-field .val{font-size:13px;font-weight:500}
+  .section-title{font-size:12px;font-weight:600;text-transform:uppercase;
+    letter-spacing:.5px;color:var(--text2);margin:20px 0 12px;
+    padding-bottom:8px;border-bottom:1px solid var(--border)}
+  .form-row{display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+  .form-group{display:flex;flex-direction:column;gap:4px;flex:1;min-width:130px}
+  .form-group label{font-size:11px;color:var(--text2)}
+  .form-control{background:var(--bg3);border:1px solid var(--border);border-radius:7px;
+    padding:7px 10px;color:var(--text);font-size:13px;font-family:inherit;
+    outline:none;transition:border-color .2s}
+  .form-control:focus{border-color:var(--accent)}
+  .form-control option{background:var(--bg2)}
+  textarea.form-control{resize:vertical;min-height:60px}
+  .saving-indicator{display:none;font-size:12px;color:var(--text2);align-items:center;gap:6px}
+  .saving-indicator.show{display:flex}
+
+  /* ── CONTACTS ── */
+  .contact-entry{background:var(--bg3);border:1px solid var(--border);
+    border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:12px}
+  .contact-entry-header{display:flex;justify-content:space-between;color:var(--text2);margin-bottom:4px}
+  .contact-entry-tipo{font-weight:600;color:var(--accent)}
+  .contact-entry-nota{color:var(--text);line-height:1.4}
+  .no-contacts{color:var(--text2);font-size:12px;font-style:italic;padding:8px 0}
+
+  /* ── WA MODAL ── */
+  .wa-template{background:var(--bg3);border:1px solid var(--border);border-radius:8px;
+    padding:14px;font-size:13px;line-height:1.6;color:var(--text);
+    white-space:pre-wrap;margin-bottom:12px;font-family:inherit}
+
+  /* ── MISC ── */
+  .pct-bar-wrap{display:flex;align-items:center;gap:8px}
+  .progress-wrap{background:var(--bg3);border-radius:4px;height:6px;overflow:hidden}
+  .progress-fill{height:100%;border-radius:4px;background:var(--accent);transition:width .3s}
+  .pct-label{font-size:11px;color:var(--text2);width:36px;text-align:right}
+  .checkbox-all,.checkbox-row{width:16px;height:16px;cursor:pointer;accent-color:var(--accent)}
+  .today-badge{display:inline-block;padding:2px 8px;background:rgba(239,68,68,.15);
+    color:var(--red);border-radius:12px;font-size:11px;font-weight:600;margin-left:6px}
+  .hoy-empty{text-align:center;color:var(--text2);padding:60px;font-size:15px}
+  .toast{position:fixed;bottom:24px;right:24px;background:var(--bg2);
+    border:1px solid var(--border);border-radius:8px;padding:12px 18px;
+    font-size:13px;z-index:9999;display:none;animation:slideup .2s ease}
+  .toast.show{display:block}
+  @keyframes slideup{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+  ::-webkit-scrollbar{width:6px;height:6px}
+  ::-webkit-scrollbar-track{background:var(--bg)}
+  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+  /* cobrador-only elements hidden for admins */
+  .cobrador-only{} 
+  .admin-only{display:none}
+  body.is-admin .cobrador-only{display:none!important}
+  body.is-admin .admin-only{display:block}
+</style>
+</head>
+<body>
+
+<!-- CONFIG SCREEN -->
+<div class="config-screen show" id="configScreen">
+  <div class="config-card">
+    <div class="config-logo">🏗 Cobranza <span>Amarah</span></div>
+    <div class="config-subtitle">Grupo Ureca de México</div>
+
+    <div class="config-field">
+      <label>URL del Apps Script</label>
+      <input class="config-input" type="text" id="cfgUrl"
+        placeholder="https://script.google.com/macros/s/.../exec">
+      <div class="config-hint">La obtienes al publicar el script en Google Sheets</div>
+    </div>
+
+    <div class="config-field">
+      <label>Clave de acceso</label>
+      <input class="config-input" type="password" id="cfgKey"
+        placeholder="Clave secreta del script">
+    </div>
+
+    <div class="config-field">
+      <label>Soy</label>
+      <select class="config-input" id="cfgUser">
+        <option value="">— Selecciona tu usuario —</option>
+        <option value="Andrea Ramirez">Andrea Ramírez (Cobradora)</option>
+        <option value="Liz Olvera">Liz Olvera (Cobradora)</option>
+        <option value="Nana Retana">Nana Retana (Cobradora)</option>
+        <option value="ER">ER (Admin)</option>
+        <option value="FU">FU (Admin)</option>
+      </select>
+    </div>
+
+    <div class="config-error" id="cfgError"></div>
+    <button class="config-btn" onclick="connectApp()">Conectar →</button>
+
+    <div style="font-size:11px;color:var(--text2);text-align:center;margin-top:-8px">
+      La configuración se guarda en este navegador
+    </div>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loadingText">Cargando datos de cartera...</div>
+</div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-logo">🏗 Cobranza <span>Amarah</span></div>
+  <div class="update-chip">
+    <div class="update-dot" id="updateDot"></div>
+    <span id="updateLabel">—</span>
+  </div>
+  <div class="topbar-sep"></div>
+  <span class="role-badge" id="roleBadge"></span>
+  <div class="user-selector">
+    👤 <span id="userLabel" style="color:var(--text);font-size:13px">—</span>
+  </div>
+  <button class="refresh-btn" id="refreshBtn" onclick="refreshData()">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+      <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+      <path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+      <path d="M3 21v-5h5"/>
+    </svg>
+    Actualizar
+  </button>
+  <button class="btn btn-ghost" style="font-size:12px" onclick="logout()">Salir</button>
+</div>
+
+<!-- KPI BAR -->
+<div class="kpi-bar">
+  <div class="kpi-card">
+    <div class="kpi-label">Cartera total</div>
+    <div class="kpi-value kpi-accent" id="kpiCartera">—</div>
+    <div class="kpi-sub" id="kpiExpedientes">— expedientes</div>
+  </div>
+  <div class="kpi-card kpi-red">
+    <div class="kpi-label">Cartera vencida</div>
+    <div class="kpi-value" id="kpiVencida">—</div>
+    <div class="kpi-sub" id="kpiVencidaPct">—% del total</div>
+  </div>
+  <div class="kpi-card kpi-red">
+    <div class="kpi-label">Rescisión</div>
+    <div class="kpi-value" id="kpiRescision">—</div>
+    <div class="kpi-sub">3+ mensualidades</div>
+  </div>
+  <div class="kpi-card kpi-orange">
+    <div class="kpi-label">Críticos</div>
+    <div class="kpi-value" id="kpiCritico">—</div>
+    <div class="kpi-sub">2 mensualidades</div>
+  </div>
+  <div class="kpi-card kpi-yellow">
+    <div class="kpi-label">En aviso</div>
+    <div class="kpi-value" id="kpiAviso">—</div>
+    <div class="kpi-sub">1 mensualidad</div>
+  </div>
+  <div class="kpi-card kpi-green">
+    <div class="kpi-label">En gestión</div>
+    <div class="kpi-value" id="kpiGestion">—</div>
+    <div class="kpi-sub" id="kpiRegularizados">— regularizados</div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs-bar">
+  <button class="tab-btn cobrador-only active" onclick="switchTab('vencidos',event)">🔴 Cartera vencida</button>
+  <button class="tab-btn cobrador-only" onclick="switchTab('todos',event)">📋 Todos los expedientes</button>
+  <button class="tab-btn cobrador-only" onclick="switchTab('hoy',event)">
+    📅 Mis acciones de hoy <span class="today-badge" id="todayCount">0</span>
+  </button>
+  <button class="tab-btn admin-only active" onclick="switchTab('dashboard',event)">📊 Dashboard</button>
+  <button class="tab-btn admin-only" onclick="switchTab('todos',event)">📋 Expedientes</button>
+</div>
+
+<!-- BULK BAR -->
+<div class="bulk-bar cobrador-only" id="bulkBar">
+  <span class="bulk-count" id="bulkCount">0 seleccionados</span>
+  <button class="btn btn-ghost" onclick="bulkAction('contactado')">✓ Marcar contactado</button>
+  <button class="btn btn-ghost" onclick="bulkAction('por_rescindir')">⚠ Por rescindir</button>
+  <button class="btn btn-ghost" style="color:var(--text2)" onclick="clearSelection()">✕ Limpiar</button>
+</div>
+
+<!-- TAB: DASHBOARD (admin) -->
+<div class="tab-content" id="tab-dashboard">
+  <div class="admin-grid" id="adminDashboard"></div>
+</div>
+
+<!-- TAB: VENCIDOS -->
+<div class="tab-content cobrador-only active" id="tab-vencidos">
+  <div class="filters-bar">
+    <input class="search-box" type="text" id="searchVencidos"
+      placeholder="🔍  Buscar folio, cliente, teléfono..." oninput="renderVencidos()">
+    <select class="filter-select" id="filterRiesgo" onchange="renderVencidos()">
+      <option value="">Todos los niveles</option>
+      <option value="aviso">🟡 Aviso (1)</option>
+      <option value="critico">🟠 Crítico (2)</option>
+      <option value="rescision">🔴 Rescisión (3+)</option>
+    </select>
+    <select class="filter-select" id="filterGestion" onchange="renderVencidos()">
+      <option value="">Todos los estatus</option>
+      <option value="sin_accion">Sin acción</option>
+      <option value="contactado">Contactado</option>
+      <option value="plan_pagos">Plan de pagos</option>
+      <option value="regularizado">Regularizado</option>
+      <option value="por_rescindir">Por rescindir</option>
+    </select>
+    <select class="filter-select" id="filterAsesorV" onchange="renderVencidos()">
+      <option value="">Todos los asesores</option>
+    </select>
+    <div class="filters-sep"></div>
+    <span class="records-count" id="countVencidos"></span>
+    <button class="btn btn-ghost" onclick="exportCSV('vencidos')">⬇ CSV</button>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th><input type="checkbox" class="checkbox-all" id="checkAll" onchange="toggleAll(this)"></th>
+        <th onclick="sortTable('folio','vencidos')">Folio</th>
+        <th onclick="sortTable('cliente','vencidos')">Cliente</th>
+        <th onclick="sortTable('parc_vencidas','vencidos')">Vencidas</th>
+        <th onclick="sortTable('monto_vencido','vencidos')">Monto vencido</th>
+        <th onclick="sortTable('mensualidad','vencidos')">Mensualidad</th>
+        <th onclick="sortTable('nivel_riesgo','vencidos')">Nivel</th>
+        <th onclick="sortTable('estatus_gestion','vencidos')">Gestión</th>
+        <th onclick="sortTable('fecha_ultimo_pago','vencidos')">Últ. pago</th>
+        <th onclick="sortTable('asesor','vencidos')">Asesor</th>
+        <th>% Pagado</th>
+        <th>Acciones</th>
+      </tr></thead>
+      <tbody id="tbodyVencidos"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- TAB: TODOS -->
+<div class="tab-content" id="tab-todos">
+  <div class="filters-bar">
+    <input class="search-box" type="text" id="searchTodos"
+      placeholder="🔍  Buscar folio, cliente, teléfono..." oninput="renderTodos()">
+    <select class="filter-select" id="filterRiesgoT" onchange="renderTodos()">
+      <option value="">Todos los niveles</option>
+      <option value="al_corriente">🟢 Al corriente</option>
+      <option value="aviso">🟡 Aviso</option>
+      <option value="critico">🟠 Crítico</option>
+      <option value="rescision">🔴 Rescisión</option>
+    </select>
+    <select class="filter-select" id="filterAsesorT" onchange="renderTodos()">
+      <option value="">Todos los asesores</option>
+    </select>
+    <div class="filters-sep"></div>
+    <span class="records-count" id="countTodos"></span>
+    <button class="btn btn-ghost" onclick="exportCSV('todos')">⬇ CSV</button>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th onclick="sortTable('folio','todos')">Folio</th>
+        <th onclick="sortTable('cliente','todos')">Cliente</th>
+        <th onclick="sortTable('costo','todos')">Contrato</th>
+        <th onclick="sortTable('pagado','todos')">Pagado</th>
+        <th onclick="sortTable('saldo','todos')">Saldo</th>
+        <th onclick="sortTable('parc_vencidas','todos')">Vencidas</th>
+        <th onclick="sortTable('nivel_riesgo','todos')">Nivel</th>
+        <th onclick="sortTable('estatus_gestion','todos')">Gestión</th>
+        <th onclick="sortTable('asesor','todos')">Asesor</th>
+        <th onclick="sortTable('plan','todos')">Plan</th>
+        <th>Acciones</th>
+      </tr></thead>
+      <tbody id="tbodyTodos"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- TAB: HOY -->
+<div class="tab-content cobrador-only" id="tab-hoy">
+  <div style="padding:16px 24px">
+    <div id="hoyContent"></div>
+  </div>
+</div>
+
+<!-- MODAL: GESTIÓN -->
+<div class="modal-overlay" id="modalGestion">
+  <div class="modal">
+    <div class="modal-close" onclick="closeModal('modalGestion')">✕</div>
+    <div class="modal-title" id="mgCliente">—</div>
+    <div class="modal-folio" id="mgFolio">Folio —</div>
+    <div class="modal-grid" id="mgInfo"></div>
+    <div class="cobrador-only">
+      <div class="section-title">Estatus de gestión</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Estatus</label>
+          <select class="form-control" id="mgEstatus">
+            <option value="sin_accion">Sin acción</option>
+            <option value="contactado">Contactado</option>
+            <option value="plan_pagos">Plan de pagos</option>
+            <option value="regularizado">Regularizado</option>
+            <option value="por_rescindir">Por rescindir</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Próxima acción</label>
+          <input class="form-control" type="text" id="mgProxAccion" placeholder="Ej: Llamar para confirmar">
+        </div>
+        <div class="form-group" style="max-width:150px">
+          <label>Fecha</label>
+          <input class="form-control" type="date" id="mgProxFecha">
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:12px">
+        <label>Notas</label>
+        <textarea class="form-control" id="mgNotas" rows="2" placeholder="Notas sobre el expediente..."></textarea>
+      </div>
+      <div class="section-title">Registrar contacto</div>
+      <div class="form-row">
+        <div class="form-group" style="max-width:140px">
+          <label>Tipo</label>
+          <select class="form-control" id="ctTipo">
+            <option>Llamada</option><option>WhatsApp</option>
+            <option>Email</option><option>Visita</option><option>Otro</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Nota del contacto</label>
+          <input class="form-control" type="text" id="ctNota" placeholder="Resultado...">
+        </div>
+        <div style="display:flex;align-items:flex-end">
+          <button class="btn" onclick="addContact()">+ Agregar</button>
+        </div>
+      </div>
+      <div id="contactsList"></div>
+      <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end;align-items:center">
+        <div class="saving-indicator" id="savingIndicator">
+          <div class="spinner" style="width:16px;height:16px;border-width:2px"></div>
+          Guardando en Sheets...
+        </div>
+        <button class="btn btn-ghost" onclick="closeModal('modalGestion')">Cancelar</button>
+        <button class="btn" onclick="saveGestion()">💾 Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: WHATSAPP -->
+<div class="modal-overlay" id="modalWA">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-close" onclick="closeModal('modalWA')">✕</div>
+    <div class="modal-title">📱 Enviar por WhatsApp</div>
+    <div class="modal-folio" id="waFolio">—</div>
+    <div class="section-title">Plantilla</div>
+    <div id="waTemplate" class="wa-template"></div>
+    <div style="display:flex;gap:10px">
+      <a id="waLink" href="#" target="_blank" class="btn" style="text-decoration:none">📲 Abrir WhatsApp</a>
+      <button class="btn btn-ghost" onclick="closeModal('modalWA')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════
+let SCRIPT_URL  = '';
+let SECRET_KEY  = '';
+let currentUser = '';
+let currentRole = ''; // 'cobrador' | 'admin'
+let carteraData = [];
+let sortState   = { field:'parc_vencidas', dir:'desc', tab:'vencidos' };
+let selectedFolios = new Set();
+let currentFolio   = null;
+
+const ADMINS     = ['ER','FU'];
+const COBRADORES = ['Andrea Ramirez','Liz Olvera','Nana Retana'];
+
+const CFG_KEY = 'amarah_cfg_v1';
+
+// ═══════════════════════════════════════
+//  INIT & CONNECTION
+// ═══════════════════════════════════════
+function init() {
+  const saved = JSON.parse(localStorage.getItem(CFG_KEY) || 'null');
+  if (saved && saved.url && saved.key && saved.user) {
+    SCRIPT_URL  = saved.url;
+    SECRET_KEY  = saved.key;
+    currentUser = saved.user;
+    document.getElementById('cfgUrl').value  = saved.url;
+    document.getElementById('cfgKey').value  = saved.key;
+    document.getElementById('cfgUser').value = saved.user;
+    launchApp();
+  }
+}
+
+async function connectApp() {
+  const url  = document.getElementById('cfgUrl').value.trim();
+  const key  = document.getElementById('cfgKey').value.trim();
+  const user = document.getElementById('cfgUser').value;
+  const err  = document.getElementById('cfgError');
+
+  err.classList.remove('show');
+  if (!url || !key || !user) {
+    err.textContent = 'Completa todos los campos.';
+    err.classList.add('show'); return;
+  }
+
+  SCRIPT_URL  = url;
+  SECRET_KEY  = key;
+  currentUser = user;
+
+  // Test connection
+  showLoading('Verificando conexión...');
+  try {
+    const res = await apiFetch('getKPIs');
+    if (!res.ok) throw new Error(res.error || 'Error al conectar');
+    localStorage.setItem(CFG_KEY, JSON.stringify({ url, key, user }));
+    hideLoading();
+    launchApp();
+  } catch(e) {
+    hideLoading();
+    err.textContent = 'No se pudo conectar: ' + e.message;
+    err.classList.add('show');
+  }
+}
+
+function launchApp() {
+  currentRole = ADMINS.includes(currentUser) ? 'admin' : 'cobrador';
+  document.getElementById('configScreen').classList.remove('show');
+
+  // Apply role
+  document.getElementById('userLabel').textContent   = currentUser;
+  const rb = document.getElementById('roleBadge');
+  if (currentRole === 'admin') {
+    rb.textContent  = '🔑 Admin';
+    rb.className    = 'role-badge role-admin';
+    document.body.classList.add('is-admin');
+    // Set admin default tab
+    document.querySelectorAll('.tab-btn.admin-only').forEach(b => b.style.display = 'inline-block');
+    document.querySelectorAll('.tab-btn.cobrador-only').forEach(b => b.style.display = 'none');
+    document.getElementById('tab-dashboard').classList.add('active');
+    document.getElementById('tab-vencidos').classList.remove('active');
+  } else {
+    rb.textContent  = '👤 Cobrador';
+    rb.className    = 'role-badge role-cobrador';
+  }
+
+  populateAsesores();
+  loadData();
+}
+
+function logout() {
+  localStorage.removeItem(CFG_KEY);
+  location.reload();
+}
+
+// ═══════════════════════════════════════
+//  API
+// ═══════════════════════════════════════
+async function apiFetch(action, params = {}) {
+  const url = new URL(SCRIPT_URL);
+  url.searchParams.set('key', SECRET_KEY);
+  url.searchParams.set('action', action);
+  Object.entries(params).forEach(([k,v]) => url.searchParams.set(k,v));
+  const res = await fetch(url.toString());
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  return res.json();
+}
+
+async function apiPost(body) {
+  const url = new URL(SCRIPT_URL);
+  url.searchParams.set('key', SECRET_KEY);
+  const res = await fetch(url.toString(), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...body }),
+  });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  return res.json();
+}
+
+async function loadData() {
+  showLoading('Cargando cartera desde Google Sheets...');
+  try {
+    const res = await apiFetch('getData');
+    if (!res.ok) throw new Error(res.error);
+    carteraData = res.records;
+    updateLastUpdated(res.updated_at);
+    hideLoading();
+    updateKPIs();
+    renderVencidos();
+    renderTodos();
+    renderHoy();
+    if (currentRole === 'admin') renderDashboard();
+  } catch(e) {
+    hideLoading();
+    showToast('⚠ Error al cargar datos: ' + e.message);
+  }
+}
+
+async function refreshData() {
+  const btn = document.getElementById('refreshBtn');
+  btn.classList.add('spinning');
+  await loadData();
+  btn.classList.remove('spinning');
+  showToast('✅ Datos actualizados');
+}
+
+// ═══════════════════════════════════════
+//  UTILS
+// ═══════════════════════════════════════
+function fmt(n, dec=0) {
+  if (!n || isNaN(n)) return '$0';
+  return '$' + Number(n).toLocaleString('es-MX',{minimumFractionDigits:dec,maximumFractionDigits:dec});
+}
+function fmtK(n) {
+  if (n >= 1e6) return '$' + (n/1e6).toFixed(2) + 'M';
+  if (n >= 1e3) return '$' + (n/1e3).toFixed(1) + 'K';
+  return fmt(n);
+}
+const RISK_LABELS  = {al_corriente:'Al corriente',aviso:'Aviso',critico:'Crítico',rescision:'Rescisión'};
+const GEST_LABELS  = {sin_accion:'Sin acción',contactado:'Contactado',plan_pagos:'Plan pagos',regularizado:'Regularizado',por_rescindir:'Por rescindir'};
+const badge = (cls,lbl) => `<span class="badge badge-${cls}">${lbl}</span>`;
+const pctBar = pct => {
+  const c = pct>=75?'var(--green)':pct>=40?'var(--accent)':'var(--yellow)';
+  return `<div class="pct-bar-wrap"><div class="progress-wrap" style="width:80px"><div class="progress-fill" style="width:${Math.min(pct,100)}%;background:${c}"></div></div><span class="pct-label">${pct}%</span></div>`;
+};
+
+function showLoading(msg) {
+  document.getElementById('loadingText').textContent = msg||'Cargando...';
+  document.getElementById('loadingOverlay').classList.add('show');
+}
+function hideLoading() { document.getElementById('loadingOverlay').classList.remove('show'); }
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+function updateLastUpdated(iso) {
+  const d = new Date(iso);
+  const now = new Date();
+  const diff = Math.floor((now - d) / 60000);
+  const dot = document.getElementById('updateDot');
+  const lbl = document.getElementById('updateLabel');
+  lbl.textContent = diff < 2 ? 'Actualizado ahora' : diff < 60 ? `Hace ${diff} min` : d.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
+  dot.className = 'update-dot' + (diff > 60 ? ' stale' : '');
+}
+
+// ═══════════════════════════════════════
+//  KPIs
+// ═══════════════════════════════════════
+function updateKPIs() {
+  const r = carteraData;
+  const cartera = r.reduce((s,x)=>s+(x.costo||0),0);
+  const vencida = r.reduce((s,x)=>s+(x.monto_vencido||0),0);
+  const gest    = r.filter(x=>x.estatus_gestion!=='sin_accion'&&x.nivel_riesgo!=='al_corriente').length;
+  const reg     = r.filter(x=>x.estatus_gestion==='regularizado').length;
+  document.getElementById('kpiCartera').textContent      = fmtK(cartera);
+  document.getElementById('kpiExpedientes').textContent  = `${r.length} expedientes`;
+  document.getElementById('kpiVencida').textContent      = fmtK(vencida);
+  document.getElementById('kpiVencidaPct').textContent   = `${(vencida/cartera*100).toFixed(1)}% del total`;
+  document.getElementById('kpiRescision').textContent    = r.filter(x=>x.nivel_riesgo==='rescision').length;
+  document.getElementById('kpiCritico').textContent      = r.filter(x=>x.nivel_riesgo==='critico').length;
+  document.getElementById('kpiAviso').textContent        = r.filter(x=>x.nivel_riesgo==='aviso').length;
+  document.getElementById('kpiGestion').textContent      = gest;
+  document.getElementById('kpiRegularizados').textContent= `${reg} regularizados`;
+  const today = new Date().toISOString().slice(0,10);
+  document.getElementById('todayCount').textContent = r.filter(x=>x.prox_fecha===today).length;
+}
+
+// ═══════════════════════════════════════
+//  ADMIN DASHBOARD
+// ═══════════════════════════════════════
+function renderDashboard() {
+  const r = carteraData;
+  const total = r.length;
+  const byRisk = {rescision:0,critico:0,aviso:0,al_corriente:0};
+  const byGest = {sin_accion:0,contactado:0,plan_pagos:0,regularizado:0,por_rescindir:0};
+  r.forEach(x => {
+    byRisk[x.nivel_riesgo]     = (byRisk[x.nivel_riesgo]||0)+1;
+    byGest[x.estatus_gestion]  = (byGest[x.estatus_gestion]||0)+1;
+  });
+  const cartera = r.reduce((s,x)=>s+(x.costo||0),0);
+  const vencida = r.reduce((s,x)=>s+(x.monto_vencido||0),0);
+
+  // By asesor (top 10 vencidos)
+  const byAsesor = {};
+  r.filter(x=>x.nivel_riesgo!=='al_corriente').forEach(x=>{
+    const a = x.asesor||'Sin asignar';
+    if (!byAsesor[a]) byAsesor[a] = {count:0,monto:0};
+    byAsesor[a].count++; byAsesor[a].monto += x.monto_vencido||0;
+  });
+  const topAsesores = Object.entries(byAsesor).sort((a,b)=>b[1].monto-a[1].monto).slice(0,10);
+
+  document.getElementById('adminDashboard').innerHTML = `
+    <div class="admin-card">
+      <div class="admin-card-title">Distribución de riesgo</div>
+      ${[
+        ['rescision','Rescisión (3+)',byRisk.rescision,'var(--red)'],
+        ['critico','Crítico (2)',byRisk.critico,'var(--orange)'],
+        ['aviso','Aviso (1)',byRisk.aviso,'var(--yellow)'],
+        ['al_corriente','Al corriente',byRisk.al_corriente,'var(--green)'],
+      ].map(([,lbl,cnt,color])=>`
+        <div class="risk-row">
+          <div class="risk-label">${lbl}</div>
+          <div class="risk-bar-wrap"><div class="risk-bar-fill" style="width:${(cnt/total*100).toFixed(1)}%;background:${color}"></div></div>
+          <div class="risk-count" style="color:${color}">${cnt}</div>
+        </div>
+      `).join('')}
+    </div>
+    <div class="admin-card">
+      <div class="admin-card-title">Estatus de gestión</div>
+      ${Object.entries(GEST_LABELS).map(([k,lbl])=>`
+        <div class="risk-row">
+          <div class="risk-label">${lbl}</div>
+          <div class="risk-bar-wrap"><div class="risk-bar-fill" style="width:${(byGest[k]/total*100).toFixed(1)}%;background:var(--accent)"></div></div>
+          <div class="risk-count">${byGest[k]||0}</div>
+        </div>
+      `).join('')}
+    </div>
+    <div class="admin-card">
+      <div class="admin-card-title">Resumen financiero</div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div><div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.4px">Cartera total</div>
+          <div style="font-size:24px;font-weight:700;color:var(--accent)">${fmtK(cartera)}</div></div>
+        <div><div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.4px">Cartera vencida</div>
+          <div style="font-size:24px;font-weight:700;color:var(--red)">${fmtK(vencida)}</div>
+          <div style="font-size:12px;color:var(--text2)">${(vencida/cartera*100).toFixed(2)}% del total</div></div>
+        <div><div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.4px">Cartera sana</div>
+          <div style="font-size:24px;font-weight:700;color:var(--green)">${fmtK(cartera-vencida)}</div></div>
+      </div>
+    </div>
+    <div class="admin-card" style="grid-column:1/-1">
+      <div class="admin-card-title">Top asesores por cartera vencida</div>
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead><tr>
+          <th style="text-align:left;padding:8px 10px;font-size:11px;color:var(--text2);border-bottom:1px solid var(--border)">#</th>
+          <th style="text-align:left;padding:8px 10px;font-size:11px;color:var(--text2);border-bottom:1px solid var(--border)">Asesor</th>
+          <th style="text-align:right;padding:8px 10px;font-size:11px;color:var(--text2);border-bottom:1px solid var(--border)">Expedientes vencidos</th>
+          <th style="text-align:right;padding:8px 10px;font-size:11px;color:var(--text2);border-bottom:1px solid var(--border)">Monto vencido</th>
+        </tr></thead>
+        <tbody>
+          ${topAsesores.map(([a,d],i)=>`
+            <tr style="border-bottom:1px solid var(--border)">
+              <td style="padding:8px 10px;color:var(--text2)">${i+1}</td>
+              <td style="padding:8px 10px;font-weight:500">${a}</td>
+              <td style="padding:8px 10px;text-align:right">${d.count}</td>
+              <td style="padding:8px 10px;text-align:right;color:var(--red);font-weight:600">${fmtK(d.monto)}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+// ═══════════════════════════════════════
+//  TABLES
+// ═══════════════════════════════════════
+function applySort(recs, field, dir) {
+  return [...recs].sort((a,b)=>{
+    let va=a[field], vb=b[field];
+    if(typeof va==='string') va=va.toLowerCase();
+    if(typeof vb==='string') vb=vb.toLowerCase();
+    if(va<vb) return dir==='asc'?-1:1;
+    if(va>vb) return dir==='asc'?1:-1;
+    return 0;
+  });
+}
+
+function sortTable(field, tab) {
+  sortState = sortState.tab===tab && sortState.field===field
+    ? {...sortState, dir: sortState.dir==='asc'?'desc':'asc'}
+    : { field, dir:'desc', tab };
+  if (tab==='vencidos') renderVencidos(); else renderTodos();
+}
+
+function getFilteredVencidos() {
+  const q = (document.getElementById('searchVencidos').value||'').toLowerCase();
+  const riesgo = document.getElementById('filterRiesgo').value;
+  const gestion = document.getElementById('filterGestion').value;
+  const asesor  = document.getElementById('filterAsesorV').value;
+  let r = carteraData.filter(x=>x.nivel_riesgo!=='al_corriente');
+  if(q) r=r.filter(x=>x.folio.includes(q)||(x.cliente||'').toLowerCase().includes(q)||(x.telefono||'').includes(q)||(x.asesor||'').toLowerCase().includes(q));
+  if(riesgo) r=r.filter(x=>x.nivel_riesgo===riesgo);
+  if(gestion) r=r.filter(x=>x.estatus_gestion===gestion);
+  if(asesor)  r=r.filter(x=>x.asesor===asesor);
+  return r;
+}
+
+function renderVencidos() {
+  let recs = applySort(getFilteredVencidos(), sortState.tab==='vencidos'?sortState.field:'parc_vencidas', sortState.tab==='vencidos'?sortState.dir:'desc');
+  document.getElementById('countVencidos').textContent = `${recs.length} expedientes`;
+  document.getElementById('tbodyVencidos').innerHTML = recs.map(r=>`
+    <tr onclick="openGestion('${r.folio}',event)">
+      <td onclick="event.stopPropagation()">
+        <input type="checkbox" class="checkbox-row" data-folio="${r.folio}" ${selectedFolios.has(r.folio)?'checked':''} onchange="toggleSelect('${r.folio}',this.checked)">
+      </td>
+      <td class="td-folio">${r.folio}</td>
+      <td class="td-cliente" title="${r.cliente}">${r.cliente}</td>
+      <td class="td-num" style="font-weight:700;color:${r.parc_vencidas>=3?'var(--red)':r.parc_vencidas===2?'var(--orange)':'var(--yellow)'}">${r.parc_vencidas}</td>
+      <td class="td-num" style="color:var(--red)">${fmt(r.monto_vencido)}</td>
+      <td class="td-num">${fmt(r.mensualidad)}</td>
+      <td>${badge(r.nivel_riesgo,RISK_LABELS[r.nivel_riesgo])}</td>
+      <td>${badge(r.estatus_gestion,GEST_LABELS[r.estatus_gestion])}</td>
+      <td>${r.fecha_ultimo_pago||'—'}</td>
+      <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis" title="${r.asesor}">${r.asesor||'—'}</td>
+      <td>${pctBar(r.pct_pagado)}</td>
+      <td><div class="td-actions" onclick="event.stopPropagation()">
+        <span class="action-btn whatsapp" title="WhatsApp" onclick="openWA('${r.folio}')">💬</span>
+        <a class="action-btn call" title="Llamar" href="tel:${r.telefono}">📞</a>
+        <a class="action-btn email" title="Email" href="mailto:${r.correo}">✉</a>
+      </div></td>
+    </tr>
+  `).join('');
+}
+
+function getFilteredTodos() {
+  const q = (document.getElementById('searchTodos').value||'').toLowerCase();
+  const riesgo = document.getElementById('filterRiesgoT').value;
+  const asesor  = document.getElementById('filterAsesorT').value;
+  let r = carteraData;
+  if(q) r=r.filter(x=>x.folio.includes(q)||(x.cliente||'').toLowerCase().includes(q)||(x.telefono||'').includes(q));
+  if(riesgo) r=r.filter(x=>x.nivel_riesgo===riesgo);
+  if(asesor)  r=r.filter(x=>x.asesor===asesor);
+  return r;
+}
+
+function renderTodos() {
+  let recs = applySort(getFilteredTodos(), sortState.tab==='todos'?sortState.field:'costo', sortState.tab==='todos'?sortState.dir:'desc');
+  document.getElementById('countTodos').textContent = `${recs.length} expedientes`;
+  document.getElementById('tbodyTodos').innerHTML = recs.map(r=>`
+    <tr onclick="openGestion('${r.folio}',event)">
+      <td class="td-folio">${r.folio}</td>
+      <td class="td-cliente" title="${r.cliente}">${r.cliente}</td>
+      <td class="td-num">${fmtK(r.costo)}</td>
+      <td class="td-num">${fmtK(r.pagado)}</td>
+      <td class="td-num">${fmtK(r.saldo)}</td>
+      <td class="td-num" style="color:${r.parc_vencidas>0?'var(--red)':'var(--green)'}">${r.parc_vencidas}</td>
+      <td>${badge(r.nivel_riesgo,RISK_LABELS[r.nivel_riesgo])}</td>
+      <td>${badge(r.estatus_gestion,GEST_LABELS[r.estatus_gestion])}</td>
+      <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis" title="${r.asesor}">${r.asesor||'—'}</td>
+      <td>${r.plan||'—'}</td>
+      <td><div class="td-actions" onclick="event.stopPropagation()">
+        <span class="action-btn whatsapp" onclick="openWA('${r.folio}')">💬</span>
+        <a class="action-btn call" href="tel:${r.telefono}">📞</a>
+        <a class="action-btn email" href="mailto:${r.correo}">✉</a>
+      </div></td>
+    </tr>
+  `).join('');
+}
+
+function renderHoy() {
+  const today = new Date().toISOString().slice(0,10);
+  const recs  = carteraData.filter(r=>r.prox_fecha===today);
+  const el    = document.getElementById('hoyContent');
+  if (!recs.length) { el.innerHTML='<div class="hoy-empty">✅ Sin acciones programadas para hoy</div>'; return; }
+  el.innerHTML = `<p style="color:var(--text2);margin-bottom:16px;font-size:13px">${recs.length} acción(es) para hoy</p>
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead><tr>
+        ${['Folio','Cliente','Próxima acción','Nivel','Gestión'].map(h=>`<th style="text-align:left;padding:10px 12px;background:var(--bg2);color:var(--text2);font-size:11px;text-transform:uppercase;border-bottom:1px solid var(--border)">${h}</th>`).join('')}
+      </tr></thead>
+      <tbody>
+        ${recs.map(r=>`<tr style="border-bottom:1px solid var(--border);cursor:pointer" onclick="openGestion('${r.folio}',event)">
+          <td style="padding:10px 12px;color:var(--accent);font-weight:600">${r.folio}</td>
+          <td style="padding:10px 12px">${r.cliente}</td>
+          <td style="padding:10px 12px;color:var(--yellow)">${r.prox_accion||'—'}</td>
+          <td style="padding:10px 12px">${badge(r.nivel_riesgo,RISK_LABELS[r.nivel_riesgo])}</td>
+          <td style="padding:10px 12px">${badge(r.estatus_gestion,GEST_LABELS[r.estatus_gestion])}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+// ═══════════════════════════════════════
+//  TABS
+// ═══════════════════════════════════════
+function switchTab(tab, e) {
+  const btn = e ? e.target.closest('.tab-btn') : null;
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  document.getElementById('tab-'+tab).classList.add('active');
+  if(tab==='hoy') renderHoy();
+  if(tab==='dashboard') renderDashboard();
+}
+
+// ═══════════════════════════════════════
+//  SELECTION
+// ═══════════════════════════════════════
+function toggleSelect(folio,checked) {
+  if(checked) selectedFolios.add(folio); else selectedFolios.delete(folio);
+  updateBulkBar();
+}
+function toggleAll(cb) {
+  document.querySelectorAll('.checkbox-row').forEach(r=>{ r.checked=cb.checked; toggleSelect(r.dataset.folio,cb.checked); });
+}
+function clearSelection() {
+  selectedFolios.clear();
+  document.querySelectorAll('.checkbox-row,.checkbox-all').forEach(c=>c.checked=false);
+  updateBulkBar();
+}
+function updateBulkBar() {
+  document.getElementById('bulkCount').textContent=`${selectedFolios.size} seleccionados`;
+  document.getElementById('bulkBar').classList.toggle('visible',selectedFolios.size>0);
+}
+async function bulkAction(estatus) {
+  showLoading('Guardando en Google Sheets...');
+  try {
+    const folios = [...selectedFolios];
+    for (const folio of folios) {
+      const rec = carteraData.find(r=>r.folio===folio)||{};
+      await apiPost({ action:'saveSeguimiento', data:{
+        folio, estatus,
+        proxAccion: rec.prox_accion||'',
+        proxFecha:  rec.prox_fecha||'',
+        notas:      rec.notas||'',
+        contactos:  rec.contactos||[],
+        usuario:    currentUser,
+      }});
+      // update local
+      const idx = carteraData.findIndex(r=>r.folio===folio);
+      if(idx>=0) carteraData[idx].estatus_gestion = estatus;
+    }
+    hideLoading();
+    clearSelection();
+    updateKPIs(); renderVencidos(); renderTodos();
+    showToast(`✅ ${folios.length} expedientes actualizados`);
+  } catch(e) { hideLoading(); showToast('⚠ Error: '+e.message); }
+}
+
+// ═══════════════════════════════════════
+//  MODAL GESTIÓN
+// ═══════════════════════════════════════
+function openGestion(folio, event) {
+  if(event?.target.closest('.action-btn,.checkbox-row,.checkbox-all')) return;
+  currentFolio = folio;
+  const r = carteraData.find(x=>x.folio===folio);
+  if(!r) return;
+
+  document.getElementById('mgCliente').textContent = r.cliente;
+  document.getElementById('mgFolio').textContent   = `Folio ${r.folio} · ${r.unidad} · ${r.plan}`;
+  document.getElementById('mgInfo').innerHTML = `
+    <div class="modal-field"><label>Teléfono</label><div class="val">${r.telefono||'—'}</div></div>
+    <div class="modal-field"><label>Asesor</label><div class="val">${r.asesor||'—'}</div></div>
+    <div class="modal-field"><label>Valor contrato</label><div class="val" style="font-size:18px;font-weight:700">${fmt(r.costo)}</div></div>
+    <div class="modal-field"><label>Saldo actual</label><div class="val">${fmt(r.saldo)}</div></div>
+    <div class="modal-field"><label>Mensualidad</label><div class="val">${fmt(r.mensualidad)}</div></div>
+    <div class="modal-field"><label>% Pagado</label><div class="val">${r.pct_pagado}%<div class="progress-wrap"><div class="progress-fill" style="width:${r.pct_pagado}%"></div></div></div></div>
+    <div class="modal-field"><label>Parc. vencidas</label><div class="val" style="color:${r.parc_vencidas>0?'var(--red)':'var(--green)'}">${r.parc_vencidas} · ${badge(r.nivel_riesgo,RISK_LABELS[r.nivel_riesgo])}</div></div>
+    <div class="modal-field"><label>Monto vencido</label><div class="val" style="color:var(--red)">${fmt(r.monto_vencido)}</div></div>
+    <div class="modal-field"><label>Pagos realizados</label><div class="val">${r.pagos_realizados}</div></div>
+    <div class="modal-field"><label>Último pago</label><div class="val">${r.fecha_ultimo_pago||'—'}</div></div>
+    <div class="modal-field"><label>Estado</label><div class="val">${r.estado_cliente||'—'}</div></div>
+    <div class="modal-field"><label>Correo</label><div class="val" style="font-size:12px">${r.correo||'—'}</div></div>
+  `;
+
+  if(currentRole==='cobrador') {
+    document.getElementById('mgEstatus').value    = r.estatus_gestion||'sin_accion';
+    document.getElementById('mgProxAccion').value = r.prox_accion||'';
+    document.getElementById('mgProxFecha').value  = r.prox_fecha||'';
+    document.getElementById('mgNotas').value      = r.notas||'';
+    document.getElementById('ctNota').value       = '';
+    renderContacts(r.contactos||[]);
+  }
+  document.getElementById('modalGestion').classList.add('open');
+}
+
+function renderContacts(contacts) {
+  const el = document.getElementById('contactsList');
+  if(!contacts?.length) { el.innerHTML='<div class="no-contacts">Sin contactos registrados</div>'; return; }
+  el.innerHTML = [...contacts].reverse().map(c=>`
+    <div class="contact-entry">
+      <div class="contact-entry-header">
+        <span class="contact-entry-tipo">${c.tipo}</span>
+        <span>${c.fecha} ${c.hora} · ${c.usuario}</span>
+      </div>
+      <div class="contact-entry-nota">${c.nota||'—'}</div>
+    </div>
+  `).join('');
+}
+
+async function addContact() {
+  const tipo = document.getElementById('ctTipo').value;
+  const nota = document.getElementById('ctNota').value;
+  const now  = new Date();
+  const contacto = { fecha:now.toISOString().slice(0,10), hora:now.toTimeString().slice(0,5), usuario:currentUser, tipo, nota };
+
+  const r   = carteraData.find(x=>x.folio===currentFolio);
+  const ctc = [...(r?.contactos||[]), contacto];
+
+  try {
+    await apiPost({ action:'saveContacto', data:{ folio:currentFolio, contacto }});
+    if(r) r.contactos = ctc;
+    renderContacts(ctc);
+    document.getElementById('ctNota').value = '';
+    showToast('✅ Contacto registrado');
+  } catch(e) { showToast('⚠ Error: '+e.message); }
+}
+
+async function saveGestion() {
+  const estatus    = document.getElementById('mgEstatus').value;
+  const proxAccion = document.getElementById('mgProxAccion').value;
+  const proxFecha  = document.getElementById('mgProxFecha').value;
+  const notas      = document.getElementById('mgNotas').value;
+  const r          = carteraData.find(x=>x.folio===currentFolio)||{};
+
+  const si = document.getElementById('savingIndicator');
+  si.classList.add('show');
+  try {
+    await apiPost({ action:'saveSeguimiento', data:{
+      folio:currentFolio, estatus, proxAccion, proxFecha, notas,
+      contactos: r.contactos||[], usuario: currentUser,
+    }});
+    // Update local state
+    if(r) { r.estatus_gestion=estatus; r.prox_accion=proxAccion; r.prox_fecha=proxFecha; r.notas=notas; }
+    si.classList.remove('show');
+    updateKPIs(); renderVencidos(); renderTodos();
+    closeModal('modalGestion');
+    showToast('✅ Guardado en Google Sheets');
+  } catch(e) { si.classList.remove('show'); showToast('⚠ Error: '+e.message); }
+}
+
+// ═══════════════════════════════════════
+//  WHATSAPP
+// ═══════════════════════════════════════
+function openWA(folio) {
+  const r = carteraData.find(x=>x.folio===folio);
+  if(!r) return;
+  document.getElementById('waFolio').textContent = `Folio ${r.folio} · ${r.cliente}`;
+  const msg = r.parc_vencidas >= 2
+    ? `Estimado/a ${r.cliente}, le informamos que su expediente ${r.folio} presenta ${r.parc_vencidas} parcialidades vencidas. Conforme a su contrato, de no regularizar en los próximos días, procederemos a la rescisión del contrato y pérdida del terreno. Por favor contáctenos urgentemente.`
+    : `Hola ${r.cliente}, le escribimos de Grupo Ureca sobre su expediente ${r.folio}. Tiene ${r.parc_vencidas} parcialidad(es) pendiente(s) por un total de ${fmt(r.monto_vencido)}. Nos gustaría ayudarle a regularizar su situación.`;
+  document.getElementById('waTemplate').textContent = msg;
+  const phone   = (r.telefono||'').replace(/\D/g,'');
+  document.getElementById('waLink').href = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+  document.getElementById('modalWA').classList.add('open');
+}
+
+// ═══════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{ if(e.target===o) o.classList.remove('open'); }));
+
+function populateAsesores() {
+  const asesores = [...new Set(carteraData.map(r=>r.asesor).filter(Boolean))].sort();
+  ['filterAsesorV','filterAsesorT'].forEach(id=>{
+    const sel = document.getElementById(id);
+    sel.innerHTML = '<option value="">Todos los asesores</option>';
+    asesores.forEach(a=>{ const o=document.createElement('option'); o.value=a; o.textContent=a; sel.appendChild(o); });
+  });
+}
+
+function exportCSV(tab) {
+  const recs = tab==='vencidos' ? getFilteredVencidos() : getFilteredTodos();
+  const headers = ['Folio','Cliente','Teléfono','Asesor','Nivel Riesgo','Parc Vencidas','Monto Vencido','Mensualidad','Costo','Pagado','Saldo','% Pagado','Gestión','Próx Acción','Próx Fecha','Últ Pago'];
+  const rows = recs.map(r=>[r.folio,r.cliente,r.telefono,r.asesor,r.nivel_riesgo,r.parc_vencidas,r.monto_vencido,r.mensualidad,r.costo,r.pagado,r.saldo,r.pct_pagado,r.estatus_gestion,r.prox_accion,r.prox_fecha,r.fecha_ultimo_pago].map(v=>`"${(v||'').toString().replace(/"/g,'""')}"`).join(','));
+  const blob = new Blob([[headers.join(','),...rows].join('\n')],{type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download=`cobranza_amarah_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+}
+
+init();
+</script>
+</body>
+</html>
