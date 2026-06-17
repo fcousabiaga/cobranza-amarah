@@ -1463,8 +1463,9 @@ function renderTodos(){
 // ══════════════════════════════════════
 // HOY / PRÓXIMAS / HISTORIAL
 // ══════════════════════════════════════
-function accionesTable(items,showFecha=false){
-  const cols=showFecha?['Fecha','Folio','Cliente','Acción','Nivel','Gestión']:['Folio','Cliente','Acción','Nivel','Gestión','Reincidencia'];
+function accionesTable(items,showFecha=false,showDescartar=false){
+  let cols=showFecha?['Fecha','Folio','Cliente','Acción','Nivel','Gestión']:['Folio','Cliente','Acción','Nivel','Gestión','Reincidencia'];
+  if(showDescartar)cols=cols.concat(['']);
   return`<table class="prod-table" style="width:100%">
     <thead><tr>${cols.map(h=>`<th>${h}</th>`).join('')}</tr></thead>
     <tbody>${items.map(a=>`<tr style="cursor:pointer;${a.urgente?"border-left:3px solid var(--red)":""}" onclick="openGestion('${a.folio}',event)">
@@ -1475,6 +1476,7 @@ function accionesTable(items,showFecha=false){
       <td>${badge(a.nivel,RISK_LABELS[a.nivel])}</td>
       <td>${badge(a.gestion,GEST_LABELS[a.gestion])}</td>
       ${!showFecha?`<td>${reincChip(a.reinc)}</td>`:''}
+      ${showDescartar?`<td>${a.tipo==='accion'?`<button class="btn-ghost" style="padding:3px 9px;font-size:11px;white-space:nowrap" onclick="descartarAccion('${a.folio}',event)" title="Quitar esta acción y registrarla en el historial">✕ Descartar</button>`:'<span style="color:var(--text2);font-size:11px">—</span>'}</td>`:''}
     </tr>`).join('')}</tbody>
   </table>`;
 }
@@ -1517,7 +1519,7 @@ function renderHoy(){
   document.getElementById('todayCount').textContent=total;
   if(!total){el.innerHTML='<div class="hoy-empty">✅ Sin acciones pendientes</div>';return;}
   let out='';
-  if(vencidas.length) out+=`<div style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--red);margin-bottom:8px">⚠️ Vencidas sin resolver (${vencidas.length})</div>${accionesTable(vencidas)}`;
+  if(vencidas.length) out+=`<div style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--red);margin-bottom:8px">⚠️ Vencidas sin resolver (${vencidas.length})</div>${accionesTable(vencidas,false,true)}`;
   if(hoy.length) out+=`<div style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--accent);margin:16px 0 8px">📋 Programadas para hoy (${hoy.length})</div>${accionesTable(hoy)}`;
   el.innerHTML=out;
 }
@@ -1776,6 +1778,26 @@ async function quickLog(folio,tipo){
     if(r)r.contactos=[...(r.contactos||[]),c];
     toast(`✅ ${tipo} registrado`);
   }catch(e){toast('⚠ '+e.message);}
+}
+
+// Descartar una acción programada vencida: limpia prox_accion/prox_fecha del folio
+// y deja rastro en Historial. Disponible para cualquier cobradora y admins.
+async function descartarAccion(folio,ev){
+  if(ev)ev.stopPropagation();
+  const r=carteraData.find(x=>x.folio===folio);if(!r)return;
+  const accionPrev=r.prox_accion||'';
+  if(!confirm(`¿Descartar la acción programada de este folio?\n\n"${accionPrev}"\n\nSe quitará de Hoy y quedará registrada en el Historial.`))return;
+  const now=new Date();
+  const ctc={fecha:now.toISOString().slice(0,10),hora:now.toTimeString().slice(0,5),usuario:currentUser,tipo:'Acción descartada',nota:accionPrev};
+  const ctcs=[...(r.contactos||[]),ctc];
+  showLoading('Descartando...');
+  try{
+    await apiPost({action:'saveSeguimiento',data:{folio,estatus:r.estatus_gestion||'sin_accion',proxAccion:'',proxFecha:'',notas:r.notas||'',contactos:ctcs,compromisos:r.compromisos||[],cobrador:r.cobrador||currentUser,usuario:currentUser,fechaContactado:r.fecha_contactado||'',fechaCarta:r.fecha_carta||'',fechaAvisoFinal:r.fecha_aviso_final||''}});
+    r.prox_accion='';r.prox_fecha='';r.contactos=ctcs;
+    hideLoading();
+    renderHoy();renderProximas();
+    toast('✅ Acción descartada');
+  }catch(e){hideLoading();toast('⚠ '+e.message);}
 }
 
 function openWA(folio){
